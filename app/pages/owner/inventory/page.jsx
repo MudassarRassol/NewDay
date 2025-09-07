@@ -102,7 +102,8 @@ export default function InventoryPage() {
     threeMonthsLater.setMonth(today.getMonth() + 3);
 
     const expiryDate = new Date(item.expiry);
-    const isExpiringSoon = expiryDate <= threeMonthsLater && expiryDate >= today;
+    const isExpiringSoon =
+      expiryDate <= threeMonthsLater && expiryDate >= today;
 
     return matchesSearch && isExpiringSoon;
   });
@@ -111,7 +112,7 @@ export default function InventoryPage() {
     <div className="p-4">
       <div className="flex flex-wrap justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Medicines Inventory</h1>
-        <div className="flex gap-3">
+        <div className="flex   gap-3 flex-wrap ">
           <Input
             type="text"
             placeholder="Search medicines..."
@@ -119,18 +120,20 @@ export default function InventoryPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-64"
           />
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" /> Add Medicine
-          </Button>
-          <Button
-            onClick={() => setExpiringSoon((prev) => !prev)}
-            variant={expiringSoon ? "destructive" : "default"}
-          >
-            {expiringSoon ? "Showing Expiring Soon" : "Expiring Soon"}
-          </Button>
+          <div className="flex items-center gap-3" >
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" /> Add Medicine
+            </Button>
+            <Button
+              onClick={() => setExpiringSoon((prev) => !prev)}
+              variant={expiringSoon ? "destructive" : "default"}
+            >
+              {expiringSoon ? "Showing Expiring Soon" : "Expiring Soon"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -177,8 +180,12 @@ export default function InventoryPage() {
                   <TableCell className="border text-green-500">
                     {item.quantity}
                   </TableCell>
-                  <TableCell className="border ">₨ {item.purchasePrice}</TableCell>
-                  <TableCell className="border text-primary">₨ {item.sellingPrice}</TableCell>
+                  <TableCell className="border ">
+                    ₨ {item.purchasePrice}
+                  </TableCell>
+                  <TableCell className="border text-primary">
+                    ₨ {item.sellingPrice}
+                  </TableCell>
                   <TableCell
                     className={`border ${
                       new Date(item.expiry) < new Date()
