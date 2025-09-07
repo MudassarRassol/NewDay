@@ -1,0 +1,6 @@
+# Allow all search engines to crawl the entire site
+User-agent: *
+Allow: /
+
+# Optional: Sitemap location
+Sitemap: https://new-day-kappa.vercel.app/
