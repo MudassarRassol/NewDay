@@ -1,0 +1,112 @@
+  import { NextResponse } from "next/server";
+  import connectDB from "../../../lib/connectdb";
+  import HistoryModel from "../../../models/history";
+  import MedicineModel from "../../../models/medicine"; // ✅ import medicine model
+
+  // ✅ Create a new history (checkout)
+export async function POST(req) {
+  await connectDB();
+
+  try {
+    const body = await req.json();
+    const { items, discount = 0, finalTotal } = body;
+
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "No items provided" }, { status: 400 });
+    }
+
+    // Total amount of all items
+    const totalItemsAmount = items.reduce(
+      (sum, i) => sum + (i.sellingPrice || 0) * (i.quantity || 0),
+      0
+    );
+
+    // Map items and include medicineId
+    const itemsWithProfit = items.map((item) => {
+      const qty = item.quantity || 0;
+      const sp = item.sellingPrice || 0;
+      const pp = item.purchasePrice || 0;
+
+      // proportional discount
+      const itemDiscount =
+        totalItemsAmount > 0 ? (sp * qty / totalItemsAmount) * discount : 0;
+
+      const totalAmount = sp * qty - itemDiscount;
+      const profit = totalAmount - pp * qty;
+
+      return {
+        medicineId: item.medicineId, // ✅ map medicineId correctly
+        name: item.name,
+        quantity: qty,
+        sellingPrice: sp,
+        totalAmount,
+        profit: profit < 0 ? 0 : profit,
+      };
+    });
+
+    // Save history
+    const history = await HistoryModel.create({
+      items: itemsWithProfit,
+      discount,
+      finalTotal,
+    });
+
+    // Decrease medicine stock
+    for (const item of itemsWithProfit) {
+      await MedicineModel.findByIdAndUpdate(
+        item.medicineId,
+        { $inc: { quantity: -item.quantity } },
+        { new: true }
+      );
+    }
+
+    return NextResponse.json(history, { status: 201 });
+  } catch (err) {
+    console.error("POST /history error:", err);
+    return NextResponse.json(
+      { error: "Failed to create history entry" },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+  // ✅ Get all history entries
+  export async function GET() {
+    await connectDB();
+    try {
+      const history = await HistoryModel.find().sort({ createdAt: -1 });
+      return NextResponse.json(history, { status: 200 });
+    } catch (err) {
+      return NextResponse.json(
+        { error: "Failed to fetch history" },
+        { status: 500 }
+      );
+    }
+  }
+
+
+export async function DELETE(req) {
+  await connectDB();
+  try {
+    const { id } = await req.json(); // req must be passed as argument
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    const deletedHistory = await HistoryModel.findByIdAndDelete(id);
+
+    if (!deletedHistory) {
+      return NextResponse.json({ error: "History not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(deletedHistory, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to delete history" },
+      { status: 500 }
+    );
+  }
+}
