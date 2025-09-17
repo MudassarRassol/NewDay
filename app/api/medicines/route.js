@@ -45,7 +45,7 @@ export async function PUT(req) {
 
     const medicine = await MedicineModel.findByIdAndUpdate(
       id,
-      { name, generic, expiry, quantity, purchasePrice, sellingPrice },
+      { name, generic, expiry, quantity, purchasePrice,category, sellingPrice },
       { new: true }
     );
 
