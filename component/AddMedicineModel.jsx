@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,83 +13,93 @@ import { Loader2 } from "lucide-react";
 export default function AddMedicineModal({ open, onClose, onSave }) {
   const [name, setName] = useState("");
   const [generic, setGeneric] = useState("");
-  const [expiryDay, setExpiryDay] = useState("");   // expiry day
-  const [expiryMonth, setExpiryMonth] = useState(""); // expiry month
-  const [expiryYear, setExpiryYear] = useState(""); // expiry year
+  const [expiryDay, setExpiryDay] = useState("");
+  const [expiryMonth, setExpiryMonth] = useState("");
+  const [expiryYear, setExpiryYear] = useState("");
   const [quantity, setQuantity] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
-  const [category, setCategory] = useState(""); // selected category
-  const [customCategory, setCustomCategory] = useState(""); // for "Other"
+  const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async () => {
-  if (
-    !name ||
-    !generic ||
-    !expiryDay ||
-    !expiryMonth ||
-    !expiryYear ||
-    !quantity ||
-    !purchasePrice ||
-    !sellingPrice ||
-    (!category && !customCategory)
-  ) {
-    return alert("Please fill all the fields");
-  }
+  // ✅ Refs for inputs
+  const genericRef = useRef<HTMLInputElement>(null);
+  const expiryDayRef = useRef<HTMLInputElement>(null);
+  const expiryMonthRef = useRef<HTMLInputElement>(null);
+  const expiryYearRef = useRef<HTMLInputElement>(null);
+  const quantityRef = useRef<HTMLInputElement>(null);
+  const purchasePriceRef = useRef<HTMLInputElement>(null);
+  const sellingPriceRef = useRef<HTMLInputElement>(null);
+  const customCategoryRef = useRef<HTMLInputElement>(null);
 
-  if (
-    isNaN(quantity) ||
-    isNaN(purchasePrice) ||
-    isNaN(sellingPrice) ||
-    isNaN(expiryDay) ||
-    isNaN(expiryMonth) ||
-    isNaN(expiryYear)
-  ) {
-    return alert("Please enter valid numbers");
-  }
+  const handleEnterFocus = (e: React.KeyboardEvent, nextRef?: React.RefObject<HTMLInputElement>) => {
+    if (e.key === "Enter" && nextRef?.current) {
+      e.preventDefault(); // prevent form submission
+      nextRef.current.focus();
+    }
+  };
 
-  const finalCategory = category === "Other" ? customCategory : category;
+  const handleSubmit = async () => {
+    if (
+      !name ||
+      !generic ||
+      !expiryDay ||
+      !expiryMonth ||
+      !expiryYear ||
+      !quantity ||
+      !purchasePrice ||
+      !sellingPrice ||
+      (!category && !customCategory)
+    ) {
+      return alert("Please fill all the fields");
+    }
 
-  // ✅ Convert DD/MM/YYYY to JS Date object
-  const expiryDate = new Date(
-    Number(expiryYear),
-    Number(expiryMonth) - 1, // months 0-based
-    Number(expiryDay)
-  );
+    if (
+      isNaN(Number(quantity)) ||
+      isNaN(Number(purchasePrice)) ||
+      isNaN(Number(sellingPrice)) ||
+      isNaN(Number(expiryDay)) ||
+      isNaN(Number(expiryMonth)) ||
+      isNaN(Number(expiryYear))
+    ) {
+      return alert("Please enter valid numbers");
+    }
 
-  setLoading(true);
-  try {
-    await onSave({
-      name,
-      generic,
-      expiry: expiryDate, // send proper Date
-      quantity: Number(quantity),
-      purchasePrice: Number(purchasePrice),
-      sellingPrice: Number(sellingPrice),
-      category: finalCategory,
-    });
+    const finalCategory = category === "Other" ? customCategory : category;
 
-    // Reset form
-    setName("");
-    setGeneric("");
-    setExpiryDay("");
-    setExpiryMonth("");
-    setExpiryYear("");
-    setQuantity("");
-    setPurchasePrice("");
-    setSellingPrice("");
-    setCategory("");
-    setCustomCategory("");
+    const expiryDate = new Date(Number(expiryYear), Number(expiryMonth) - 1, Number(expiryDay));
 
-    onClose();
-  } catch (err) {
-    console.error("Error adding medicine:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      await onSave({
+        name,
+        generic,
+        expiry: expiryDate,
+        quantity: Number(quantity),
+        purchasePrice: Number(purchasePrice),
+        sellingPrice: Number(sellingPrice),
+        category: finalCategory,
+      });
 
+      setName("");
+      setGeneric("");
+      setExpiryDay("");
+      setExpiryMonth("");
+      setExpiryYear("");
+      setQuantity("");
+      setPurchasePrice("");
+      setSellingPrice("");
+      setCategory("");
+      setCustomCategory("");
+
+      onClose();
+    } catch (err) {
+      console.error("Error adding medicine:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -101,8 +109,6 @@ const handleSubmit = async () => {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-
-
           <div className="grid gap-2">
             <Label htmlFor="name">Medicine Name</Label>
             <Input
@@ -110,23 +116,22 @@ const handleSubmit = async () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter medicine name"
+              onKeyDown={(e) => handleEnterFocus(e, genericRef)}
             />
           </div>
-
-
-          {/* Generic */}
 
           <div className="grid gap-2">
             <Label htmlFor="generic">Generic</Label>
             <Input
               id="generic"
+              ref={genericRef}
               value={generic}
               onChange={(e) => setGeneric(e.target.value)}
               placeholder="Enter generic"
+              onKeyDown={(e) => handleEnterFocus(e, expiryDayRef)}
             />
           </div>
 
-          {/* Expiry Date - Custom Day/Month/Year */}
           <div className="grid gap-2">
             <Label>Expiry Date</Label>
             <div className="flex gap-2">
@@ -134,28 +139,34 @@ const handleSubmit = async () => {
                 type="number"
                 min="1"
                 max="31"
+                ref={expiryDayRef}
                 value={expiryDay}
                 onChange={(e) => setExpiryDay(e.target.value)}
                 placeholder="DD"
                 className="w-1/3"
+                onKeyDown={(e) => handleEnterFocus(e, expiryMonthRef)}
               />
               <Input
                 type="number"
                 min="1"
                 max="12"
+                ref={expiryMonthRef}
                 value={expiryMonth}
                 onChange={(e) => setExpiryMonth(e.target.value)}
                 placeholder="MM"
                 className="w-1/3"
+                onKeyDown={(e) => handleEnterFocus(e, expiryYearRef)}
               />
               <Input
                 type="number"
                 min="2024"
                 max="2100"
+                ref={expiryYearRef}
                 value={expiryYear}
                 onChange={(e) => setExpiryYear(e.target.value)}
                 placeholder="YYYY"
                 className="w-1/3"
+                onKeyDown={(e) => handleEnterFocus(e, category ? (category === "Other" ? customCategoryRef : quantityRef) : quantityRef)}
               />
             </div>
           </div>
@@ -179,15 +190,16 @@ const handleSubmit = async () => {
             </select>
           </div>
 
-          {/* Custom Category Input if "Other" */}
           {category === "Other" && (
             <div className="grid gap-2">
               <Label htmlFor="customCategory">Custom Category</Label>
               <Input
                 id="customCategory"
+                ref={customCategoryRef}
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
                 placeholder="Enter your own category"
+                onKeyDown={(e) => handleEnterFocus(e, quantityRef)}
               />
             </div>
           )}
@@ -197,33 +209,37 @@ const handleSubmit = async () => {
             <Input
               type="number"
               id="quantity"
+              ref={quantityRef}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Enter quantity"
+              onKeyDown={(e) => handleEnterFocus(e, purchasePriceRef)}
             />
           </div>
-
 
           <div className="grid gap-2">
             <Label htmlFor="purchasePrice">Purchase Price (₨)</Label>
             <Input
               type="number"
               id="purchasePrice"
+              ref={purchasePriceRef}
               value={purchasePrice}
               onChange={(e) => setPurchasePrice(e.target.value)}
               placeholder="Enter purchase price"
+              onKeyDown={(e) => handleEnterFocus(e, sellingPriceRef)}
             />
           </div>
-
 
           <div className="grid gap-2">
             <Label htmlFor="sellingPrice">Selling Price (₨)</Label>
             <Input
               type="number"
               id="sellingPrice"
+              ref={sellingPriceRef}
               value={sellingPrice}
               onChange={(e) => setSellingPrice(e.target.value)}
               placeholder="Enter selling price"
+              onKeyDown={(e) => handleEnterFocus(e)}
             />
           </div>
         </div>
