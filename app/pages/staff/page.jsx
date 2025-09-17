@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { Input } from "../../../components/ui/input";
@@ -25,13 +24,13 @@ export default function StaffPage() {
   const [search, setSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
 
-  // Get user status from localStorage
+
   useEffect(() => {
     const savedStatus = localStorage.getItem("status");
     setStatus(savedStatus);
   }, []);
 
-  // Fetch inventory only if active
+
   const fetchMedicines = async () => {
     setLoading(true);
     try {
@@ -48,6 +47,21 @@ export default function StaffPage() {
     if (status === "active") fetchMedicines();
   }, [status]);
 
+
+  // ✅ Load saved cart from localStorage on first render
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cartItems");
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        const ids = items.map((i) => i._id);
+        setSelectedMedicines(ids);
+      } catch (err) {
+        console.error("Failed to parse saved cart", err);
+      }
+    }
+  }, []);
+
   const filteredInventory = inventory.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -60,7 +74,9 @@ export default function StaffPage() {
     );
   };
 
-  const handleCheckout = () => {
+
+  // ✅ Checkout
+  const handleCheckout = useCallback(() => {
     if (selectedMedicines.length === 0) {
       alert("No medicines selected!");
       return;
@@ -72,8 +88,30 @@ export default function StaffPage() {
 
     localStorage.setItem("cartItems", JSON.stringify(soldItems));
     router.push("/pages/sales-transaction");
-  };
+  }, [selectedMedicines, inventory, router]);
 
+  // ✅ Clear Cart
+  const handleClear = useCallback(() => {
+    localStorage.removeItem("cartItems");
+    setSelectedMedicines([]);
+  }, []);
+
+  // ✅ Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        handleCheckout();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        handleClear();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleCheckout, handleClear]);
   const highlightText = (text, search) => {
     if (!search) return text;
     const regex = new RegExp(`(${search})`, "gi");
@@ -96,9 +134,8 @@ export default function StaffPage() {
         <h1 className="text-2xl font-bold text-red-600 mb-4">
           Your Account is NOT ACTIVE
         </h1>
-        <p className="text-gray-700">
-          Please contact admin to activate your account.
-        </p>
+
+        <p className="text-gray-700">Please contact admin to activate your account.</p>
       </div>
     );
   }
@@ -124,6 +161,9 @@ export default function StaffPage() {
                 <TableHead className="text-red-950">No</TableHead>
                 <TableHead className="text-blue-600">Medicine Name</TableHead>
                 <TableHead className="text-primary">(Generic)</TableHead>
+
+                <TableHead className="text-primary">Category</TableHead>
+
                 <TableHead className="text-green-500">Quantity</TableHead>
                 <TableHead className="">Tp</TableHead>
                 <TableHead className="text-primary">MRP</TableHead>
@@ -164,6 +204,11 @@ export default function StaffPage() {
                     <TableCell className="border text-primary">
                       {highlightText(item.generic, search)}
                     </TableCell>
+
+                    <TableCell className="border text-primary">
+                      {item.category ? highlightText(item.category, search) : "None"}
+                    </TableCell>
+
                     <TableCell className="border text-green-500">
                       {item.quantity}
                     </TableCell>
@@ -181,9 +226,16 @@ export default function StaffPage() {
                     <TableCell className="text-center w-1 border">
                       <Checkbox
                         disabled={item.quantity === 0}
-                        className="ml-3"
+
+                        className="ml-3 border-blue-800"
                         checked={selectedMedicines.includes(item._id)}
                         onCheckedChange={() => toggleSelect(item._id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            toggleSelect(item._id);
+                          }
+                        }}
                       />
                     </TableCell>
                   </TableRow>
@@ -193,9 +245,19 @@ export default function StaffPage() {
           </Table>
         </div>
 
-        <div className="fixed bottom-4 right-4">
+
+        {/* ✅ Cart + Clear Buttons */}
+        <div className="fixed bottom-4 right-4 flex gap-3">
           <Button className="px-10 py-7" onClick={handleCheckout}>
-            Cart ({selectedMedicines.length})
+            View Bill ({selectedMedicines.length})
+          </Button>
+
+          <Button
+            className="px-6 py-7 bg-red-600 hover:bg-red-700 text-white"
+            onClick={handleClear}
+            disabled={selectedMedicines.length === 0}
+          >
+            Clear
           </Button>
         </div>
       </div>
