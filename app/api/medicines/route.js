@@ -3,7 +3,7 @@ import MedicineModel from "../../../models/medicine";
 export async function GET() {
   await connectDB();
   try {
-    const medicines = await MedicineModel.find().sort({ createdAt: -1 });
+    const medicines = await MedicineModel.find();
     return Response.json(medicines, { status: 200 });
   } catch (err) {
     return Response.json({ error: "Failed to fetch medicines" }, { status: 500 });
@@ -14,13 +14,17 @@ export async function GET() {
 export async function POST(req) {
   await connectDB();
   try {
-    const { name, generic, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
+
+
+    const { name, generic,category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
+
 
     const medicine = await MedicineModel.create({
       name,
       generic,
       expiry,
       quantity,
+      category,
       purchasePrice,
       sellingPrice,
     });
@@ -36,7 +40,8 @@ export async function POST(req) {
 export async function PUT(req) {
   await connectDB();
   try {
-    const { id, name, generic, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
+
+    const { id, name, generic,category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
 
     const medicine = await MedicineModel.findByIdAndUpdate(
       id,
