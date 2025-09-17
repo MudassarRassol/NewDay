@@ -144,6 +144,7 @@ export default function InventoryPage() {
               <TableHead className="text-red-950">No</TableHead>
               <TableHead className="text-blue-600">Medicine Name</TableHead>
               <TableHead className="text-primary">(Generic)</TableHead>
+              <TableHead className="text-primary">Category</TableHead>
               <TableHead className="text-green-500">Quantity</TableHead>
               <TableHead className="">TP</TableHead>
               <TableHead className="text-primary">MRP</TableHead>
@@ -176,6 +177,13 @@ export default function InventoryPage() {
                   </TableCell>
                   <TableCell className="border text-primary">
                     {highlightText(item.generic, search)}
+                  </TableCell>
+                      <TableCell className="border text-primary">
+                    
+                    {
+                      item.category ?  highlightText(item.category, search)  : 'None'
+                    }
+                    
                   </TableCell>
                   <TableCell className="border text-green-500">
                     {item.quantity}
