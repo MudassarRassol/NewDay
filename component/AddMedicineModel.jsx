@@ -24,18 +24,18 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
 
   // ✅ Refs for inputs
-  const genericRef = useRef<HTMLInputElement>(null);
-  const expiryDayRef = useRef<HTMLInputElement>(null);
-  const expiryMonthRef = useRef<HTMLInputElement>(null);
-  const expiryYearRef = useRef<HTMLInputElement>(null);
-  const quantityRef = useRef<HTMLInputElement>(null);
-  const purchasePriceRef = useRef<HTMLInputElement>(null);
-  const sellingPriceRef = useRef<HTMLInputElement>(null);
-  const customCategoryRef = useRef<HTMLInputElement>(null);
+  const genericRef = useRef(null);
+  const expiryDayRef = useRef(null);
+  const expiryMonthRef = useRef(null);
+  const expiryYearRef = useRef(null);
+  const quantityRef = useRef(null);
+  const purchasePriceRef = useRef(null);
+  const sellingPriceRef = useRef(null);
+  const customCategoryRef = useRef(null);
 
-  const handleEnterFocus = (e: React.KeyboardEvent, nextRef?: React.RefObject<HTMLInputElement>) => {
+  const handleEnterFocus = (e, nextRef) => {
     if (e.key === "Enter" && nextRef?.current) {
-      e.preventDefault(); // prevent form submission
+      e.preventDefault();
       nextRef.current.focus();
     }
   };
@@ -166,12 +166,11 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
                 onChange={(e) => setExpiryYear(e.target.value)}
                 placeholder="YYYY"
                 className="w-1/3"
-                onKeyDown={(e) => handleEnterFocus(e, category ? (category === "Other" ? customCategoryRef : quantityRef) : quantityRef)}
+                onKeyDown={(e) => handleEnterFocus(e, category === "Other" ? customCategoryRef : quantityRef)}
               />
             </div>
           </div>
 
-          {/* Category */}
           <div className="grid gap-2">
             <Label htmlFor="category">Category</Label>
             <select
