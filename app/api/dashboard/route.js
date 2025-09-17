@@ -35,15 +35,19 @@ export async function GET(req) {
       0
     );
 
-    
+
+
+    const roundedSales = Math.floor(totalSales);
+const roundedProfit = Math.floor(totalProfit);
+
     // ✅ Return Response
     return new Response(
       JSON.stringify({
         totalMedicines,
         lowStock,
         expiringMedicines,
-        todaySales: totalSales,
-        todayProfit: totalProfit,
+        todaySales: roundedSales,
+        todayProfit: roundedProfit,
       }),
       {
         status: 200,
