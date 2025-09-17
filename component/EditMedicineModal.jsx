@@ -10,22 +10,22 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
-import { Calendar } from "../components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../components/ui/popover";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
 
 export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
   const [name, setName] = useState("");
   const [generic, setGeneric] = useState("");
-  const [expiry, setExpiry] = useState(null);
+
+
+  const [expiryDay, setExpiryDay] = useState("");
+  const [expiryMonth, setExpiryMonth] = useState("");
+  const [expiryYear, setExpiryYear] = useState("");
   const [quantity, setQuantity] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
+  const [category, setCategory] = useState("General");
+  const [customCategory, setCustomCategory] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   // ✅ Load medicine data when editing
@@ -33,20 +33,48 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     if (medicine) {
       setName(medicine.name || "");
       setGeneric(medicine.generic || "");
-      setExpiry(medicine.expiry ? new Date(medicine.expiry) : null);
+
+      if (medicine.expiry) {
+        const date = new Date(medicine.expiry);
+        setExpiryDay(date.getDate().toString());
+        setExpiryMonth((date.getMonth() + 1).toString());
+        setExpiryYear(date.getFullYear().toString());
+      }
       setQuantity(medicine.quantity || "");
       setPurchasePrice(medicine.purchasePrice || "");
       setSellingPrice(medicine.sellingPrice || "");
+      setCategory(medicine.category || "General");
+
     }
   }, [medicine]);
 
   const handleSubmit = async () => {
-    if (!name || !generic || !expiry || !quantity || !purchasePrice || !sellingPrice) {
+
+    if (
+      !name ||
+      !generic ||
+      !expiryDay ||
+      !expiryMonth ||
+      !expiryYear ||
+      !quantity ||
+      !purchasePrice ||
+      !sellingPrice ||
+      !category
+    ) {
       return alert("Please fill all fields");
     }
     if (isNaN(quantity) || isNaN(purchasePrice) || isNaN(sellingPrice)) {
       return alert("Quantity and prices must be numbers");
     }
+
+
+    // ✅ Build expiry date
+    const expiry = new Date(
+      `${expiryYear}-${expiryMonth}-${expiryDay}`
+    ).toISOString();
+
+    const finalCategory = category === "Other" ? customCategory : category;
+
 
     setLoading(true);
     try {
@@ -54,10 +82,12 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
         id: medicine?._id, // ✅ Important for PUT
         name,
         generic,
-        expiry: expiry.toISOString(),
+        expiry,
         quantity: Number(quantity),
         purchasePrice: Number(purchasePrice),
         sellingPrice: Number(sellingPrice),
+        category: finalCategory,
+
       });
 
       onClose();
@@ -76,52 +106,117 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+
+          {/* Medicine Name */}
           <div className="grid gap-2">
             <Label htmlFor="name">Medicine Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter medicine name" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter medicine name"
+            />
           </div>
 
+          {/* Generic */}
           <div className="grid gap-2">
             <Label htmlFor="generic">Generic</Label>
-            <Input value={generic} onChange={(e) => setGeneric(e.target.value)} placeholder="Enter generic" />
+            <Input
+              value={generic}
+              onChange={(e) => setGeneric(e.target.value)}
+              placeholder="Enter generic"
+            />
           </div>
 
+          {/* Expiry Date */}
           <div className="grid gap-2">
             <Label>Expiry Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={`w-full justify-start text-left font-normal ${!expiry && "text-muted-foreground"}`}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {expiry ? format(expiry, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="p-0">
-                <Calendar mode="single" selected={expiry || undefined} onSelect={setExpiry} initialFocus />
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                value={expiryDay}
+                onChange={(e) => setExpiryDay(e.target.value)}
+                placeholder="DD"
+                className="w-16"
+              />
+              <Input
+                type="number"
+                value={expiryMonth}
+                onChange={(e) => setExpiryMonth(e.target.value)}
+                placeholder="MM"
+                className="w-16"
+              />
+              <Input
+                type="number"
+                value={expiryYear}
+                onChange={(e) => setExpiryYear(e.target.value)}
+                placeholder="YYYY"
+                className="w-24"
+              />
+            </div>
           </div>
 
+          {/* Quantity */}
           <div className="grid gap-2">
             <Label htmlFor="quantity">Quantity</Label>
-            <Input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="Enter quantity" />
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Enter quantity"
+            />
           </div>
 
+          {/* Purchase Price */}
           <div className="grid gap-2">
             <Label htmlFor="purchasePrice">Purchase Price (₨)</Label>
-            <Input type="number" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} placeholder="Enter purchase price" />
+            <Input
+              type="number"
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              placeholder="Enter purchase price"
+            />
           </div>
 
+          {/* Selling Price */}
           <div className="grid gap-2">
             <Label htmlFor="sellingPrice">Selling Price (₨)</Label>
-            <Input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="Enter selling price" />
+            <Input
+              type="number"
+              value={sellingPrice}
+              onChange={(e) => setSellingPrice(e.target.value)}
+              placeholder="Enter selling price"
+            />
+          </div>
+
+          {/* Category */}
+          <div className="grid gap-2">
+            <Label>Category</Label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="border rounded p-2"
+            >
+              <option value="General">General</option>
+              <option value="Tablet">Tablet</option>
+              <option value="Capsule">Capsule</option>
+              <option value="Syrup">Syrup</option>
+              <option value="Injection">Injection</option>
+              <option value="Other">Other</option>
+            </select>
+            {category === "Other" && (
+              <Input
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Enter custom category"
+              />
+            )}
           </div>
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
           </Button>
