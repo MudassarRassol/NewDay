@@ -15,11 +15,20 @@ import Link from "next/link";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../../components/ui/dialog";
+
 export default function SalesTransactionPage() {
   const [inventory, setInventory] = useState([]);
   const [search, setSearch] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [loading, setLoading] = useState(false); // ✅ loading state
+
+  const [loading, setLoading] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,6 +41,27 @@ export default function SalesTransactionPage() {
       setInventory(parsed);
     }
   }, []);
+
+
+  // ✅ Keyboard Shortcuts (Ctrl+P = Print, Ctrl+C = Cancel)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        handlePrint();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [inventory, discount]);
+
 
   const filteredInventory = inventory.filter((med) =>
     med.name.toLowerCase().includes(search.toLowerCase())
@@ -64,18 +94,18 @@ export default function SalesTransactionPage() {
   const total = subtotal - discountAmount;
   const profit = total * 0.4;
 
-  const handleCheckout = async () => {
+
+  const handlePrint = async () => {
     if (inventory.length === 0) {
       alert("No medicines in cart!");
       return;
     }
 
-    setLoading(true); // ✅ start loading
-
+    setLoading(true);
     try {
       const payload = {
         items: inventory.map((med) => ({
-          medicineId: med._id || med.id, // ✅ fallback if _id missing
+          medicineId: med._id || med.id,
           name: med.name,
           quantity: med.saleQuantity,
           sellingPrice: med.sellingPrice,
@@ -85,41 +115,42 @@ export default function SalesTransactionPage() {
         discount: discountAmount,
         finalTotal: total,
       };
-      console.log(payload)
+
       await axios.post("/api/history", payload);
 
-      localStorage.removeItem("cartItems");
-      setInventory([]);
-      setDiscount(0);
-
-      // alert("Checkout successful!");
-      router.push("/pages/staff");
+      setShowTranscript(true);
     } catch (err) {
-      console.error("Checkout failed:", err);
-      alert("Checkout failed. Try again!");
+      console.error("Print failed:", err);
+      alert("Something went wrong!");
     } finally {
-      setLoading(false); // ✅ stop loading
+      setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    localStorage.removeItem("cartItems");
+    router.push("/pages/staff");
+  };
+
+  // ✅ baki tumhara pura UI jaisa hai waisa hi chalega...
   return (
-    <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
-        Sales Transaction
-      </h1>
+   <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-6 border-b pb-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">Sales Transaction</h1>
+        <nav className="flex gap-3">
+          <Link href="/pages/staff">
+            <Button variant="outline">Open Medicines</Button>
+          </Link>
+        </nav>
+      </header>
 
       {/* Search Box */}
-      <div className="mb-4 sm:mb-6 max-w-md">
-        <Input
-          placeholder="Search for medicines"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-4 items-center  justify-center ">
         {/* Medicines Table */}
-        <div className="lg:col-span-2 overflow-x-auto rounded-lg border bg-white shadow-sm p-2">
+        <div className="overflow-x-auto md:w-[40%] rounded-lg border bg-white shadow-sm p-2">
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -146,9 +177,7 @@ export default function SalesTransactionPage() {
                         if (value === "") {
                           setInventory((prev) =>
                             prev.map((m) =>
-                              m._id === med._id
-                                ? { ...m, saleQuantity: 0 }
-                                : m
+                              m._id === med._id ? { ...m, saleQuantity: 0 } : m
                             )
                           );
                           return;
@@ -170,9 +199,9 @@ export default function SalesTransactionPage() {
                     </p>
                   </TableCell>
                   <TableCell>₨ {med.sellingPrice}</TableCell>
-                  <TableCell>
-                    ₨ {med.sellingPrice * med.saleQuantity}
-                  </TableCell>
+
+                  <TableCell>₨ {med.sellingPrice * med.saleQuantity}</TableCell>
+
                   <TableCell>
                     <Button
                       variant="destructive"
@@ -187,8 +216,9 @@ export default function SalesTransactionPage() {
           </Table>
         </div>
 
-        {/* Summary */}
-        <div className="rounded-lg border bg-white p-4 sm:p-6 shadow-sm">
+
+        {/* Checkout Box */}
+        <div className="rounded-lg md:w-[40%] border bg-white p-4 sm:p-6 shadow-sm">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600 mb-2">
               Discount (₨)
@@ -237,22 +267,145 @@ export default function SalesTransactionPage() {
               <p>₨ {profit}</p>
             </div>
           </div>
-          <div className="mt-4 flex flex-col gap-2 sm:gap-3">
+          <div className="mt-4 flex items-center gap-2 sm:gap-3">
             <Button
-              className="w-full bg-green-500 hover:bg-green-600"
-              onClick={handleCheckout}
-              disabled={loading} // ✅ disable while loading
+              className="w-[80%] bg-blue-500 hover:bg-blue-600"
+              onClick={handlePrint}
+              disabled={loading}
             >
-              {loading ? "Processing..." : "Checkout"}
+              {loading ? "Processing..." : "Print"}
             </Button>
-            <Link href="/pages/staff">
-              <Button className="w-full" variant="outline" disabled={loading}>
-                Cancel
-              </Button>
-            </Link>
+            <Button
+              className="w-[20%] bg-red-500 hover:bg-red-600"
+              onClick={handleCancel} // ✅ اب Cancel صحیح
+              disabled={loading}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Transcript Modal */}
+      <Dialog open={showTranscript} onOpenChange={setShowTranscript}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Sales Transcript</DialogTitle>
+          </DialogHeader>
+
+          {/* Receipt */}
+          <div
+            id="receipt"
+            className="bg-white p-6 flex flex-col text-sm border rounded-md shadow-sm"
+          >
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold">NewDay Pharmacy</h1>
+              <p>03006914479 | 03126906640</p>
+              <hr className="my-2 border-gray-400" />
+            </div>
+
+            <div className="flex-grow">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No</TableHead>
+                    <TableHead>Medicine</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inventory.map((item, index) => (
+                    <TableRow key={item._id || index}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell>{item.saleQuantity}</TableCell>
+                      <TableCell>₨ {item.sellingPrice}</TableCell>
+                      <TableCell>
+                        ₨ {item.sellingPrice * item.saleQuantity}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="mt-6 border-t pt-4 space-y-1">
+              <div className="flex flex-row items-center justify-between">
+                <p>Gross Total : ₨ {subtotal}</p>
+                 <p>Discount : ₨ {discountAmount} </p>
+              </div>
+              <div className="flex justify-between font-bold text-lg mt-2 items-end  ">
+                <p>Net Total : ₨ {total}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-500 hover:bg-blue-600"
+              onClick={() => {
+                const printContents =
+                  document.getElementById("receipt")?.innerHTML;
+                if (printContents) {
+                  const newWin = window.open("", "_blank");
+                  newWin.document.write(`
+        <html>
+          <head>
+            <title>Print Receipt</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; background: #fff; }
+              .receipt { 
+                max-width: 380px;  
+                margin: auto; 
+                border: 1px solid #ddd; 
+                border-radius: 6px; 
+                padding: 16px; 
+                font-size: 13px;
+                 text-align: center; 
+              }
+              h1 { font-size: 20px; margin: 0;text-align: center;  }
+              .header { text-align: center; margin-bottom: 10px; }
+              .header p { margin: 0; font-size: 12px; }
+              hr { margin: 8px 0; border: 1px dashed #ccc; }
+              table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+              th, td { border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 12px; }
+              th { background: #f5f5f5; }
+              .totals { margin-top: 10px; padding-top: 6px; border-top: 1px solid #ccc; }
+              .totals div { display: flex; justify-content: space-between; margin: 4px 0; }
+              .totals div:last-child { font-weight: bold; font-size: 14px; }
+              .footer { text-align: center; margin-top: 12px; font-size: 11px; color: #555; }
+            </style>
+          </head>
+          <body>
+            <div class="receipt">
+              ${printContents}
+              <div class="footer">
+                Thank you for choosing <b>NewDay Pharmacy</b><br/>
+                Get well soon! 🌿
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+                  newWin.document.close();
+                  newWin.focus();
+                  newWin.print();
+                  newWin.close();
+                }
+              }}
+            >
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
