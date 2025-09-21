@@ -38,6 +38,7 @@ export default function DashboardPage() {
           { label: "Expiring Medicines", value: data.expiringMedicines, color: "text-red-500" },
           { label: "Today's Sales", value: `₨${data.todaySales}`, color: "text-gray-900" },
           { label: "Total Profit", value: `₨${data.todayProfit}`, color: "text-green-600" },
+          { label: "Total TP", value: `₨${data.totalTP}`, color: "text-blue-600" }, // ✅ Added
         ]);
       } catch (err) {
         console.error("Failed to fetch dashboard stats", err);
@@ -80,7 +81,7 @@ export default function DashboardPage() {
           <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           {stats.map((stat, i) => (
             <Card key={i}>
               <CardHeader>

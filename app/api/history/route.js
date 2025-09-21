@@ -90,18 +90,22 @@ export async function POST(req) {
 export async function DELETE(req) {
   await connectDB();
   try {
-    const { id } = await req.json(); // req must be passed as argument
-    if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    const { ids } = await req.json();  // multiple IDs expect karega
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "IDs are required" }, { status: 400 });
     }
 
-    const deletedHistory = await HistoryModel.findByIdAndDelete(id);
+    const deleted = await HistoryModel.deleteMany({ _id: { $in: ids } });
 
-    if (!deletedHistory) {
-      return NextResponse.json({ error: "History not found" }, { status: 404 });
+    if (deleted.deletedCount === 0) {
+      return NextResponse.json({ error: "No history found" }, { status: 404 });
     }
 
-    return NextResponse.json(deletedHistory, { status: 200 });
+    return NextResponse.json(
+      { message: "Deleted successfully", count: deleted.deletedCount },
+      { status: 200 }
+    );
   } catch (err) {
     console.error(err);
     return NextResponse.json(

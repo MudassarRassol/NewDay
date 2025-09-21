@@ -48,12 +48,13 @@ const [tptotal, settptotal] = useState(0);
 
 useEffect(() => {
   const total = inventory.reduce((sum, item) => {
-    const qty = item.quantity || 0;          // agar undefined ho to 0
-    const price = item.purchasePrice || 0;   // agar undefined ho to 0
-    return Math.floor(sum + qty * price);
+    
+    const t =  sum + (item.quantity || 0) * (item.purchasePrice || 0) 
+
+    return t
   }, 0);
   
-  settptotal(total);
+  settptotal(Math.floor(total));
 }, [inventory]);
 
 

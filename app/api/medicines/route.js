@@ -65,13 +65,24 @@ export async function PUT(req) {
 export async function DELETE(req) {
   await connectDB();
   try {
-    const { id } = await req.json();
-    const medicine = await MedicineModel.findByIdAndDelete(id);
-    if (!medicine) {
-      return Response.json({ error: "Medicine not found" }, { status: 404 });
+    const { id, ids } = await req.json();
+
+    if (ids && Array.isArray(ids)) {
+      await MedicineModel.deleteMany({ _id: { $in: ids } });
+      return Response.json({ message: "Medicines deleted" }, { status: 200 });
     }
-    return Response.json({ message: "Medicine deleted" }, { status: 200 });
+
+    if (id) {
+      const medicine = await MedicineModel.findByIdAndDelete(id);
+      if (!medicine) {
+        return Response.json({ error: "Medicine not found" }, { status: 404 });
+      }
+      return Response.json({ message: "Medicine deleted" }, { status: 200 });
+    }
+
+    return Response.json({ error: "No ID(s) provided" }, { status: 400 });
   } catch (err) {
     return Response.json({ error: "Failed to delete medicine" }, { status: 400 });
   }
 }
+

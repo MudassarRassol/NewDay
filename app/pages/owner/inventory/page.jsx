@@ -24,8 +24,10 @@ export default function InventoryPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [expiringSoon, setExpiringSoon] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [focusedIndex, setFocusedIndex] = useState(0); // 👉 Track row focus
 
-  // ✅ Fetch all medicines
+  // ✅ Fetch medicines
   const fetchMedicines = async () => {
     setLoading(true);
     try {
@@ -42,54 +44,10 @@ export default function InventoryPage() {
     fetchMedicines();
   }, []);
 
-  // ✅ Delete medicine
-  const deleteItem = async (id) => {
-    try {
-      await axios.delete("/api/medicines", { data: { id } });
-      setInventory((prev) => prev.filter((item) => item._id !== id));
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
-  };
 
-  // ✅ Edit medicine
-  const handleSave = async (updated) => {
-    try {
-      const res = await axios.put("/api/medicines", updated);
-      setInventory((prev) =>
-        prev.map((item) => (item._id === updated.id ? res.data : item))
-      );
-    } catch (err) {
-      console.error("Update failed", err);
-    }
-  };
 
-  // ✅ Add new medicine
-  const handleAdd = async (newMedicine) => {
-    try {
-      const res = await axios.post("/api/medicines", newMedicine);
-      setInventory((prev) => [res.data, ...prev]);
-    } catch (err) {
-      console.error("Add failed", err);
-    }
-  };
-
-  const highlightText = (text, search) => {
-    if (!search) return text;
-    const regex = new RegExp(`(${search})`, "gi"); // case-insensitive
-    const parts = text.split(regex);
-    return parts.map((part, index) =>
-      regex.test(part) ? (
-        <span key={index} className="bg-yellow-200 font-semibold">
-          {part}
-        </span>
-      ) : (
-        part
-      )
-    );
-  };
-
-  // ✅ Filter inventory by search & Expiring Soon
+  
+    // ✅ Filter inventory
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -102,25 +60,122 @@ export default function InventoryPage() {
     threeMonthsLater.setMonth(today.getMonth() + 3);
 
     const expiryDate = new Date(item.expiry);
-    const isExpiringSoon =
-      expiryDate <= threeMonthsLater && expiryDate >= today;
+    return (
+      matchesSearch && expiryDate <= threeMonthsLater && expiryDate >= today
+    );
+  });// ✅ Shortcuts + Navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        document.getElementById("search-box")?.focus();
+      }
 
-    return matchesSearch && isExpiringSoon;
-  });
+      if (e.ctrlKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        if (selectedItems.length > 0) deleteSelected();
+      }
+
+      if (e.ctrlKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setExpiringSoon((prev) => !prev);
+      }
+
+      if (e.ctrlKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setIsAddModalOpen(true);
+      }
+
+      // 👇 Arrow navigation
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIndex((prev) =>
+          prev < filteredInventory.length - 1 ? prev + 1 : prev
+        );
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      }
+
+      // 👇 Enter = select/deselect medicine
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const current = filteredInventory[focusedIndex];
+        if (current) toggleSelect(current._id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedItems, filteredInventory, focusedIndex]);
+
+  // ✅ Toggle single select
+  const toggleSelect = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSave = async (updated) => { try { const res = await axios.put("/api/medicines", updated); setInventory((prev) => prev.map((item) => (item._id === updated.id ? res.data : item)) ); } catch (err) { console.error("Update failed", err); } };
+
+
+  const handleAdd = async (newMedicine) => { try { const res = await axios.post("/api/medicines", newMedicine); setInventory((prev) => [res.data, ...prev]); } catch (err) { console.error("Add failed", err); } };
+
+  // ✅ Toggle all
+  const toggleSelectAll = () => {
+    if (selectedItems.length === filteredInventory.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(filteredInventory.map((item) => item._id));
+    }
+  };
+
+  // ✅ Bulk delete
+  const deleteSelected = async () => {
+    try {
+      await axios.delete("/api/medicines", { data: { ids: selectedItems } });
+      setInventory((prev) =>
+        prev.filter((item) => !selectedItems.includes(item._id))
+      );
+      setSelectedItems([]);
+    } catch (err) {
+      console.error("Bulk delete failed", err);
+    }
+  };
+
+  // ✅ Highlight search
+  const highlightText = (text, search) => {
+    if (!search) return text;
+    const regex = new RegExp(`(${search})`, "gi");
+    return text.split(regex).map((part, i) =>
+      regex.test(part) ? (
+        <span key={i} className="bg-yellow-200 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+
 
   return (
     <div className="p-4">
+      {/* Search & Actions */}
       <div className="flex flex-wrap justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Medicines Inventory</h1>
-        <div className="flex   gap-3 flex-wrap ">
+        <div className="flex gap-3 flex-wrap">
           <Input
+            id="search-box"
             type="text"
             placeholder="Search medicines..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-64"
           />
-          <div className="flex items-center gap-3" >
+          <div className="flex items-center gap-3">
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center gap-2"
@@ -128,27 +183,48 @@ export default function InventoryPage() {
               <Plus className="h-4 w-4" /> Add Medicine
             </Button>
             <Button
-              onClick={() => setExpiringSoon((prev) => !prev)}
+              onClick={() => setExpiringSoon((p) => !p)}
               variant={expiringSoon ? "destructive" : "default"}
             >
               {expiringSoon ? "Showing Expiring Soon" : "Expiring Soon"}
             </Button>
+            {selectedItems.length > 0 && (
+              <Button
+                onClick={deleteSelected}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" /> Delete Selected (
+                {selectedItems.length})
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Table */}
       <div className="rounded-md border p-2 bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedItems.length === filteredInventory.length &&
+                    filteredInventory.length > 0
+                  }
+                  onChange={toggleSelectAll}
+                />
+              </TableHead>
               <TableHead className="text-red-950">No</TableHead>
               <TableHead className="text-blue-600">Medicine Name</TableHead>
               <TableHead className="text-primary">(Generic)</TableHead>
               <TableHead className="text-primary">Category</TableHead>
               <TableHead className="text-green-500">Quantity</TableHead>
-              <TableHead className="">TP</TableHead>
+              <TableHead>TP</TableHead>
               <TableHead className="text-primary">MRP</TableHead>
-              <TableHead className="">Expiry Date</TableHead>
+              <TableHead>Expiry Date</TableHead>
               <TableHead className="text-primary text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -156,54 +232,60 @@ export default function InventoryPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-6">
+                <TableCell colSpan={10} className="text-center py-6">
                   Loading medicines...
                 </TableCell>
               </TableRow>
             ) : filteredInventory.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={10} className="h-24 text-center">
                   No medicines found.
                 </TableCell>
               </TableRow>
             ) : (
               filteredInventory.map((item, index) => (
-                <TableRow key={item._id}>
-                  <TableCell className="border w-1 text-red-950">
-                    {index + 1}
+                <TableRow
+                  key={item._id}
+                  className={
+                    index === focusedIndex
+                      ? "bg-gray-100 border-l-4 border-blue-500"
+                      : ""
+                  }
+                >
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item._id)}
+                      onChange={() => toggleSelect(item._id)}
+                    />
                   </TableCell>
-                  <TableCell className="border text-blue-600">
+                  <TableCell className="text-red-950">{index + 1}</TableCell>
+                  <TableCell className="text-blue-600">
                     {highlightText(item.name, search)}
                   </TableCell>
-                  <TableCell className="border text-primary">
+                  <TableCell className="text-primary">
                     {highlightText(item.generic, search)}
                   </TableCell>
-                      <TableCell className="border text-primary">
-                    
-                    {
-                      item.category ?  highlightText(item.category, search)  : 'None'
-                    }
-                    
+                  <TableCell className="text-primary">
+                    {item.category ? highlightText(item.category, search) : "None"}
                   </TableCell>
-                  <TableCell className="border text-green-500">
+                  <TableCell className="text-green-500">
                     {item.quantity}
                   </TableCell>
-                  <TableCell className="border ">
-                    ₨ {item.purchasePrice}
-                  </TableCell>
-                  <TableCell className="border text-primary">
+                  <TableCell>₨ {item.purchasePrice}</TableCell>
+                  <TableCell className="text-primary">
                     ₨ {item.sellingPrice}
                   </TableCell>
                   <TableCell
-                    className={`border ${
+                    className={
                       new Date(item.expiry) < new Date()
                         ? "text-red-500 font-semibold"
                         : ""
-                    }`}
+                    }
                   >
                     {new Date(item.expiry).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right flex gap-2 justify-end border">
+                  <TableCell className="text-right flex gap-2 justify-end">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -229,15 +311,13 @@ export default function InventoryPage() {
         </Table>
       </div>
 
-      {/* Edit Modal */}
+      {/* Modals */}
       <EditMedicineModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         medicine={editingMedicine}
         onSave={handleSave}
       />
-
-      {/* Add Modal */}
       <AddMedicineModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

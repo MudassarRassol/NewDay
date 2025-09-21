@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -25,7 +24,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
   const [customCategory, setCustomCategory] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Refs for inputs
+  // ✅ Refs
   const genericRef = useRef(null);
   const expiryDayRef = useRef(null);
   const expiryMonthRef = useRef(null);
@@ -47,14 +46,23 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
         setExpiryMonth((date.getMonth() + 1).toString());
         setExpiryYear(date.getFullYear().toString());
       }
+
       setQuantity(medicine.quantity || "");
       setPurchasePrice(medicine.purchasePrice || "");
       setSellingPrice(medicine.sellingPrice || "");
-      setCategory(medicine.category || "General");
+
+      // ✅ If medicine.category is not a default one, treat it as "Other"
+      const defaultCategories = ["General", "Tablet", "Capsule", "Syrup", "Injection"];
+      if (defaultCategories.includes(medicine.category)) {
+        setCategory(medicine.category);
+        setCustomCategory("");
+      } else {
+        setCategory("Other");
+        setCustomCategory(medicine.category || "");
+      }
     }
   }, [medicine]);
 
-  // ✅ Handle Enter key to move to next input
   const handleEnterFocus = (e, nextRef) => {
     if (e.key === "Enter" && nextRef?.current) {
       e.preventDefault();
@@ -72,7 +80,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
       !quantity ||
       !purchasePrice ||
       !sellingPrice ||
-      !category
+      (!category && !customCategory)
     ) {
       return alert("Please fill all fields");
     }
@@ -80,7 +88,10 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
       return alert("Quantity and prices must be numbers");
     }
 
-    const expiry = new Date(`${expiryYear}-${expiryMonth}-${expiryDay}`).toISOString();
+    const expiry = new Date(
+      `${expiryYear}-${expiryMonth}-${expiryDay}`
+    ).toISOString();
+
     const finalCategory = category === "Other" ? customCategory : category;
 
     setLoading(true);
@@ -111,6 +122,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {/* Name */}
           <div className="grid gap-2">
             <Label>Medicine Name</Label>
             <Input
@@ -121,6 +133,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
             />
           </div>
 
+          {/* Generic */}
           <div className="grid gap-2">
             <Label>Generic</Label>
             <Input
@@ -132,6 +145,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
             />
           </div>
 
+          {/* Expiry */}
           <div className="grid gap-2">
             <Label>Expiry Date</Label>
             <div className="flex gap-2">
@@ -170,47 +184,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Quantity</Label>
-            <Input
-              type="number"
-              ref={quantityRef}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Enter quantity"
-              onKeyDown={(e) => handleEnterFocus(e, purchasePriceRef)}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Purchase Price (₨)</Label>
-            <Input
-              type="number"
-              ref={purchasePriceRef}
-              value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              placeholder="Enter purchase price"
-              onKeyDown={(e) => handleEnterFocus(e, sellingPriceRef)}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Selling Price (₨)</Label>
-            <Input
-              type="number"
-              ref={sellingPriceRef}
-              value={sellingPrice}
-              onChange={(e) => setSellingPrice(e.target.value)}
-              placeholder="Enter selling price"
-              onKeyDown={(e) =>
-                handleEnterFocus(
-                  e,
-                  category === "Other" ? customCategoryRef : null
-                )
-              }
-            />
-          </div>
-
+          {/* Category */}
           <div className="grid gap-2">
             <Label>Category</Label>
             <select
@@ -234,6 +208,48 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
                 onKeyDown={(e) => handleEnterFocus(e, quantityRef)}
               />
             )}
+          </div>
+
+          {/* Quantity */}
+          <div className="grid gap-2">
+            <Label>Quantity</Label>
+            <Input
+              type="number"
+              ref={quantityRef}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Enter quantity"
+              onKeyDown={(e) => handleEnterFocus(e, purchasePriceRef)}
+            />
+          </div>
+
+          {/* Prices */}
+          <div className="grid gap-2">
+            <Label>Purchase Price (₨)</Label>
+            <Input
+              type="number"
+              ref={purchasePriceRef}
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              placeholder="Enter purchase price"
+              onKeyDown={(e) => handleEnterFocus(e, sellingPriceRef)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label>Selling Price (₨)</Label>
+            <Input
+              type="number"
+              ref={sellingPriceRef}
+              value={sellingPrice}
+              onChange={(e) => setSellingPrice(e.target.value)}
+              placeholder="Enter selling price"
+              onKeyDown={(e) =>
+                handleEnterFocus(
+                  e,
+                  category === "Other" ? customCategoryRef : null
+                )
+              }
+            />
           </div>
         </div>
 
