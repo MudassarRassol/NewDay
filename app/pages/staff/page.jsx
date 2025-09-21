@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { Input } from "../../../components/ui/input";
@@ -24,12 +24,13 @@ export default function StaffPage() {
   const [search, setSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
 
+  // ✅ search input ref
+  const searchRef = useRef(null);
 
   useEffect(() => {
     const savedStatus = localStorage.getItem("status");
     setStatus(savedStatus);
   }, []);
-
 
   const fetchMedicines = async () => {
     setLoading(true);
@@ -47,8 +48,6 @@ export default function StaffPage() {
     if (status === "active") fetchMedicines();
   }, [status]);
 
-
-  // ✅ Load saved cart from localStorage on first render
   useEffect(() => {
     const savedCart = localStorage.getItem("cartItems");
     if (savedCart) {
@@ -74,23 +73,18 @@ export default function StaffPage() {
     );
   };
 
-
-  // ✅ Checkout
   const handleCheckout = useCallback(() => {
     if (selectedMedicines.length === 0) {
       alert("No medicines selected!");
       return;
     }
-
     const soldItems = inventory.filter((item) =>
       selectedMedicines.includes(item._id)
     );
-
     localStorage.setItem("cartItems", JSON.stringify(soldItems));
     router.push("/pages/sales-transaction");
   }, [selectedMedicines, inventory, router]);
 
-  // ✅ Clear Cart
   const handleClear = useCallback(() => {
     localStorage.removeItem("cartItems");
     setSelectedMedicines([]);
@@ -107,11 +101,17 @@ export default function StaffPage() {
         e.preventDefault();
         handleClear();
       }
+      // ✅ Ctrl + S → focus on search
+      if (e.ctrlKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleCheckout, handleClear]);
+
   const highlightText = (text, search) => {
     if (!search) return text;
     const regex = new RegExp(`(${search})`, "gi");
@@ -127,14 +127,12 @@ export default function StaffPage() {
     );
   };
 
-  // ✅ Show inactive message if status is inactive
   if (status === "inactive") {
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-4">
           Your Account is NOT ACTIVE
         </h1>
-
         <p className="text-gray-700">Please contact admin to activate your account.</p>
       </div>
     );
@@ -146,42 +144,58 @@ export default function StaffPage() {
       <div className="p-8 relative">
         <div className="flex flex-wrap justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-primary">Sell Medicines</h1>
-          <Input
-            placeholder="Search medicines..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
-          />
+          <div className="flex items-center gap-4">
+            {/* ✅ search input with ref + autofocus */}
+            <Input
+              ref={searchRef}
+              placeholder="Search medicines..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 py-7"
+              autoFocus
+              tabIndex={1}
+            />
+            <div className="flex gap-3">
+              <Button className="px-10 py-7" onClick={handleCheckout} tabIndex={2}>
+                View Bill ({selectedMedicines.length})
+              </Button>
+              <Button
+                className="px-6 py-7 bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleClear}
+                disabled={selectedMedicines.length === 0}
+                tabIndex={3}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-md border p-2 shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-red-950">No</TableHead>
-                <TableHead className="text-blue-600">Medicine Name</TableHead>
-                <TableHead className="text-primary">(Generic)</TableHead>
-
-                <TableHead className="text-primary">Category</TableHead>
-
-                <TableHead className="text-green-500">Quantity</TableHead>
-                <TableHead className="">Tp</TableHead>
-                <TableHead className="text-primary">MRP</TableHead>
+                <TableHead>No</TableHead>
+                <TableHead>Medicine Name</TableHead>
+                <TableHead>(Generic)</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Tp</TableHead>
+                <TableHead>MRP</TableHead>
                 <TableHead>Expiry Date</TableHead>
-                <TableHead className="text-primary">Select</TableHead>
+                <TableHead>Select</TableHead>
               </TableRow>
             </TableHeader>
-
-            <TableBody className="border">
+            <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6">
+                  <TableCell colSpan={9} className="text-center py-6">
                     <Loader2 className="animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : filteredInventory.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">
+                  <TableCell colSpan={9} className="text-center">
                     No medicines found!
                   </TableCell>
                 </TableRow>
@@ -195,39 +209,31 @@ export default function StaffPage() {
                         : ""
                     }
                   >
-                    <TableCell className="border w-1 text-red-950">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell className="border text-blue-600">
-                      {highlightText(item.name, search)}
-                    </TableCell>
-                    <TableCell className="border text-primary">
-                      {highlightText(item.generic, search)}
-                    </TableCell>
-
-                    <TableCell className="border text-primary">
-                      {item.category ? highlightText(item.category, search) : "None"}
-                    </TableCell>
-
-                    <TableCell className="border text-green-500">
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{highlightText(item.name, search)}</TableCell>
+                    <TableCell>{highlightText(item.generic, search)}</TableCell>
+                    <TableCell>{item.category || "None"}</TableCell>
+                    <TableCell
+                      className={
+                        item.quantity === 0 ? "text-red-600" : "text-green-500"
+                      }
+                    >
                       {item.quantity}
                     </TableCell>
-                    <TableCell className="border ">₨ {item.purchasePrice}</TableCell>
-                    <TableCell className="border text-primary">₨ {item.sellingPrice}</TableCell>
+                    <TableCell>₨ {item.purchasePrice}</TableCell>
+                    <TableCell>₨ {item.sellingPrice}</TableCell>
                     <TableCell
-                      className={`border ${
+                      className={
                         new Date(item.expiry) < new Date()
                           ? "text-red-500 font-semibold"
                           : ""
-                      }`}
+                      }
                     >
                       {new Date(item.expiry).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-center w-1 border">
+                    <TableCell className="text-center">
                       <Checkbox
                         disabled={item.quantity === 0}
-
-                        className="ml-3 border-blue-800"
                         checked={selectedMedicines.includes(item._id)}
                         onCheckedChange={() => toggleSelect(item._id)}
                         onKeyDown={(e) => {
@@ -236,6 +242,7 @@ export default function StaffPage() {
                             toggleSelect(item._id);
                           }
                         }}
+                        tabIndex={4 + index}
                       />
                     </TableCell>
                   </TableRow>
@@ -243,22 +250,6 @@ export default function StaffPage() {
               )}
             </TableBody>
           </Table>
-        </div>
-
-
-        {/* ✅ Cart + Clear Buttons */}
-        <div className="fixed bottom-4 right-4 flex gap-3">
-          <Button className="px-10 py-7" onClick={handleCheckout}>
-            View Bill ({selectedMedicines.length})
-          </Button>
-
-          <Button
-            className="px-6 py-7 bg-red-600 hover:bg-red-700 text-white"
-            onClick={handleClear}
-            disabled={selectedMedicines.length === 0}
-          >
-            Clear
-          </Button>
         </div>
       </div>
     </div>
