@@ -23,6 +23,8 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
+const [tptotal, settptotal] = useState(0);
+
 
   // ✅ search input ref
   const searchRef = useRef(null);
@@ -43,6 +45,18 @@ export default function StaffPage() {
       setLoading(false);
     }
   };
+
+useEffect(() => {
+  const total = inventory.reduce((sum, item) => {
+    const qty = item.quantity || 0;          // agar undefined ho to 0
+    const price = item.purchasePrice || 0;   // agar undefined ho to 0
+    return Math.floor(sum + qty * price);
+  }, 0);
+  
+  settptotal(total);
+}, [inventory]);
+
+
 
   useEffect(() => {
     if (status === "active") fetchMedicines();
@@ -209,10 +223,10 @@ export default function StaffPage() {
                         : ""
                     }
                   >
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>{highlightText(item.name, search)}</TableCell>
-                    <TableCell>{highlightText(item.generic, search)}</TableCell>
-                    <TableCell>{item.category || "None"}</TableCell>
+                    <TableCell className=" border " >{index + 1}</TableCell>
+                    <TableCell className=" border ">{highlightText(item.name, search)}</TableCell>
+                    <TableCell className=" border ">{highlightText(item.generic, search)}</TableCell>
+                    <TableCell className=" border ">{item.category || "None"}</TableCell>
                     <TableCell
                       className={
                         item.quantity === 0 ? "text-red-600" : "text-green-500"
@@ -220,8 +234,8 @@ export default function StaffPage() {
                     >
                       {item.quantity}
                     </TableCell>
-                    <TableCell>₨ {item.purchasePrice}</TableCell>
-                    <TableCell>₨ {item.sellingPrice}</TableCell>
+                    <TableCell className=" border ">₨ {item.purchasePrice}</TableCell>
+                    <TableCell className=" border ">₨ {item.sellingPrice}</TableCell>
                     <TableCell
                       className={
                         new Date(item.expiry) < new Date()
@@ -231,7 +245,7 @@ export default function StaffPage() {
                     >
                       {new Date(item.expiry).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center border">
                       <Checkbox
                         disabled={item.quantity === 0}
                         checked={selectedMedicines.includes(item._id)}
@@ -251,6 +265,9 @@ export default function StaffPage() {
             </TableBody>
           </Table>
         </div>
+      </div>
+      <div className=" flex items-end w-full text-end justify-end  text-2xl  font-bold   px-10 mb-10  " >
+        <span className=" text-red-600 mr-2 " >Total TP  :  </span> {tptotal}
       </div>
     </div>
   );
