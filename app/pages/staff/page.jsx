@@ -23,7 +23,6 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
-const [tptotal, settptotal] = useState(0);
 
 
   // ✅ search input ref
@@ -46,16 +45,6 @@ const [tptotal, settptotal] = useState(0);
     }
   };
 
-useEffect(() => {
-  const total = inventory.reduce((sum, item) => {
-    
-    const t =  sum + (item.quantity || 0) * (item.purchasePrice || 0) 
-
-    return t
-  }, 0);
-  
-  settptotal(Math.floor(total));
-}, [inventory]);
 
 
 
@@ -166,7 +155,7 @@ useEffect(() => {
               placeholder="Search medicines..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 py-7"
+              className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl  "
               autoFocus
               tabIndex={1}
             />
@@ -248,6 +237,7 @@ useEffect(() => {
                     </TableCell>
                     <TableCell className="text-center border">
                       <Checkbox
+                        className="border-2 border-blue-950"
                         disabled={item.quantity === 0}
                         checked={selectedMedicines.includes(item._id)}
                         onCheckedChange={() => toggleSelect(item._id)}
@@ -266,9 +256,6 @@ useEffect(() => {
             </TableBody>
           </Table>
         </div>
-      </div>
-      <div className=" flex items-end w-full text-end justify-end  text-2xl  font-bold   px-10 mb-10  " >
-        <span className=" text-red-600 mr-2 " >Total TP  :  </span> {tptotal}
       </div>
     </div>
   );
