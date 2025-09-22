@@ -76,7 +76,9 @@ export async function POST(req) {
   export async function GET() {
     await connectDB();
     try {
-      const history = await HistoryModel.find().sort({ createdAt: -1 });
+      const history = await HistoryModel.find()
+      .populate("items.medicineId", "purchasePrice sellingPrice") // 👈 sirf ye fields laa lo
+      .sort({ createdAt: -1 });
       return NextResponse.json(history, { status: 200 });
     } catch (err) {
       return NextResponse.json(

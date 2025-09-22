@@ -29,14 +29,20 @@ export default function HistoryPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [newQuantity, setNewQuantity] = useState(0);
   const [selectedRecords, setSelectedRecords] = useState([]);
-  const [focusedIndex, setFocusedIndex] = useState(0); // 👈 new for navigation
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  // 🔹 Date filter
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // ✅ Fetch history
   const fetchHistory = async () => {
     setLoading(true);
     try {
       const res = await axios.get("/api/history");
+      console.log(res.data);
       setHistory(res.data);
+      console.log(history);
     } catch (err) {
       console.error("Failed to fetch history", err);
     } finally {
@@ -84,16 +90,27 @@ export default function HistoryPage() {
   };
 
   // ✅ Filter history
-  const filteredHistory = history.filter((record) =>
-    record.items.some((item) =>
-      item.name.toLowerCase().includes(search.toLowerCase())
+  const filteredHistory = history
+    .filter((record) =>
+      record.items.some((item) =>
+        item.name.toLowerCase().includes(search.toLowerCase())
+      )
     )
-  );
+    .filter((record) => {
+      if (!startDate && !endDate) return true;
+      const recordDate = new Date(record.createdAt).setHours(0, 0, 0, 0);
+      const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+      const end = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+
+      if (start && recordDate < start) return false;
+      if (end && recordDate > end) return false;
+      return true;
+    });
 
   // ✅ Handle navigation with keyboard
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (editingItem) return; // disable when modal open
+      if (editingItem) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -110,7 +127,7 @@ export default function HistoryPage() {
       if (e.key === "Enter") {
         e.preventDefault();
         const current = filteredHistory[focusedIndex];
-        if (current) toggleSelect(current._id); // 👈 Select on Enter
+        if (current) toggleSelect(current._id);
       }
     };
 
@@ -164,23 +181,48 @@ export default function HistoryPage() {
     }
   };
 
-  return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
+  // ✅ Calculate total profit
+  const totalProfit = filteredHistory.reduce((sum, record) => {
+    return (
+      sum +
+      record.items.reduce((itemSum, item) => {
+        const selling = Number(item.medicineId.purchasePrice || 0);
+        const purchase = Number(item.purchasePrice || 0);
+        const qty = Number(item.quantity || 0);
+        return itemSum + (selling - purchase) * qty;
+      }, 0)
+    );
+  }, 0);
 
-      <div className="flex items-center justify-between mb-4">
-        <Input
-          placeholder="Search by medicine..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
-        />
-        {selectedRecords.length > 0 && (
-          <Button variant="destructive" onClick={handleDeleteSelected}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Selected ({selectedRecords.length})
-          </Button>
-        )}
+  return (
+    <div className="p-4  ">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
+
+        {/* 🔹 Search + Date Filters */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <Input
+            placeholder="Search by medicine..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          {selectedRecords.length > 0 && (
+            <Button variant="destructive" onClick={handleDeleteSelected}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected ({selectedRecords.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-white rounded-md border border-gray-400 shadow-sm">
@@ -191,8 +233,10 @@ export default function HistoryPage() {
               <TableHead>No</TableHead>
               <TableHead>Medicine</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Price/Unit (₨)</TableHead>
+              <TableHead className="text-right">TP (₨)</TableHead>
+              <TableHead className="text-right">MRP (₨)</TableHead>
               <TableHead className="text-right">Total (₨)</TableHead>
+              <TableHead className="text-right">Profit (₨)</TableHead>
               <TableHead className="text-right">Discount (₨)</TableHead>
               <TableHead className="text-right">Final Total (₨)</TableHead>
               <TableHead>Date</TableHead>
@@ -203,80 +247,115 @@ export default function HistoryPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-6">
+                <TableCell colSpan={11} className="text-center py-6">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filteredHistory.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-6">
+                <TableCell colSpan={11} className="text-center py-6">
                   No records found
                 </TableCell>
               </TableRow>
             ) : (
               filteredHistory.flatMap((record, idx) =>
-                record.items.map((item, itemIdx) => (
-                  <TableRow
-                    key={`${record._id}-${itemIdx}`}
-                    className={`border-b border-gray-200 ${
-                      idx === focusedIndex ? "bg-blue-100" : ""
-                    }`}
-                  >
-                    {itemIdx === 0 && (
-                      <>
-                        <TableCell rowSpan={record.items.length}>
-                          <input
-                            className=" ml-4 "
-                            type="checkbox"
-                            checked={selectedRecords.includes(record._id)}
-                            onChange={() => toggleSelect(record._id)}
-                          />
-                        </TableCell>
-                        <TableCell rowSpan={record.items.length}>
-                          {idx + 1}
-                        </TableCell>
-                      </>
-                    )}
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      ₨ {item.sellingPrice}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ₨ {item.totalAmount}
-                    </TableCell>
-                    {itemIdx === 0 && (
-                      <>
-                        <TableCell rowSpan={record.items.length} className="text-right">
-                          ₨ {record.discount}
-                        </TableCell>
-                        <TableCell rowSpan={record.items.length} className="text-right">
-                          ₨ {record.finalTotal}
-                        </TableCell>
-                        <TableCell rowSpan={record.items.length}>
-                          {new Date(record.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell rowSpan={record.items.length} className="text-right gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEditModal(record, item)}
+                record.items.map((item, itemIdx) => {
+                  const profit =
+                    (Number(item.sellingPrice) -
+                      Number(item.medicineId.purchasePrice)) *
+                    Number(item.quantity);
+                  return (
+                    <TableRow
+                      key={`${record._id}-${itemIdx}`}
+                      className={`border-b border-gray-200 ${
+                        idx === focusedIndex ? "bg-blue-100" : ""
+                      }`}
+                    >
+                      {itemIdx === 0 && (
+                        <>
+                          <TableCell rowSpan={record.items.length}>
+                            <input
+                              className="ml-4"
+                              type="checkbox"
+                              checked={selectedRecords.includes(record._id)}
+                              onChange={() => toggleSelect(record._id)}
+                            />
+                          </TableCell>
+                          <TableCell rowSpan={record.items.length}>
+                            {idx + 1}
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell className="text-right">
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₨ {item.medicineId.purchasePrice}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₨ {item.sellingPrice}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₨ {item.totalAmount}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₨ {profit.toFixed(2)}
+                      </TableCell>
+                      {itemIdx === 0 && (
+                        <>
+                          <TableCell
+                            rowSpan={record.items.length}
+                            className="text-right"
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDelete(record._id)}
+                            ₨ {record.discount}
+                          </TableCell>
+                          <TableCell
+                            rowSpan={record.items.length}
+                            className="text-right"
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                ))
+                            ₨ {record.finalTotal}
+                          </TableCell>
+                          <TableCell rowSpan={record.items.length}>
+                            {new Date(record.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell
+                            rowSpan={record.items.length}
+                            className="text-right gap-2"
+                          >
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openEditModal(record, item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDelete(record._id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  );
+                })
               )
+            )}
+
+            {/* 🔹 Total Profit Row */}
+            {filteredHistory.length > 0 && (
+              <TableRow className="bg-gray-100 font-bold">
+                <TableCell colSpan={6} className="text-right">
+                  Total Profit:
+                </TableCell>
+                <TableCell colSpan={5} className="text-left">
+                  ₨ {totalProfit.toFixed(2)}
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
