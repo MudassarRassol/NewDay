@@ -31,7 +31,7 @@ export default function HistoryPage() {
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
-  // 🔹 Date filter
+  // Date filter
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -40,9 +40,7 @@ export default function HistoryPage() {
     setLoading(true);
     try {
       const res = await axios.get("/api/history");
-      console.log(res.data);
       setHistory(res.data);
-      console.log(history);
     } catch (err) {
       console.error("Failed to fetch history", err);
     } finally {
@@ -186,8 +184,8 @@ export default function HistoryPage() {
     return (
       sum +
       record.items.reduce((itemSum, item) => {
-        const selling = Number(item.medicineId.purchasePrice || 0);
-        const purchase = Number(item.purchasePrice || 0);
+        const selling = Number(item.sellingPrice || 0);
+        const purchase = Number(item.medicineId?.purchasePrice ?? 0);
         const qty = Number(item.quantity || 0);
         return itemSum + (selling - purchase) * qty;
       }, 0)
@@ -195,34 +193,33 @@ export default function HistoryPage() {
   }, 0);
 
   return (
-    <div className="p-4  ">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
+    <div className="p-4">
+      <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
 
-        {/* 🔹 Search + Date Filters */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <Input
-            placeholder="Search by medicine..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-          {selectedRecords.length > 0 && (
-            <Button variant="destructive" onClick={handleDeleteSelected}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Selected ({selectedRecords.length})
-            </Button>
-          )}
-        </div>
+      {/* 🔹 Search + Date Filters */}
+      <div className="flex items-center gap-4 mb-4">
+        <Input
+          placeholder="Search by medicine..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-64"
+        />
+        <Input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <Input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
+        {selectedRecords.length > 0 && (
+          <Button variant="destructive" onClick={handleDeleteSelected}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Selected ({selectedRecords.length})
+          </Button>
+        )}
       </div>
 
       <div className="overflow-x-auto bg-white rounded-md border border-gray-400 shadow-sm">
@@ -233,8 +230,7 @@ export default function HistoryPage() {
               <TableHead>No</TableHead>
               <TableHead>Medicine</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">TP (₨)</TableHead>
-              <TableHead className="text-right">MRP (₨)</TableHead>
+              <TableHead className="text-right">Price/Unit (₨)</TableHead>
               <TableHead className="text-right">Total (₨)</TableHead>
               <TableHead className="text-right">Profit (₨)</TableHead>
               <TableHead className="text-right">Discount (₨)</TableHead>
@@ -261,9 +257,10 @@ export default function HistoryPage() {
               filteredHistory.flatMap((record, idx) =>
                 record.items.map((item, itemIdx) => {
                   const profit =
-                    (Number(item.sellingPrice) -
-                      Number(item.medicineId.purchasePrice)) *
-                    Number(item.quantity);
+                    (Number(item.sellingPrice || 0) -
+                      Number(item.medicineId?.purchasePrice ?? 0)) *
+                    Number(item.quantity || 0);
+
                   return (
                     <TableRow
                       key={`${record._id}-${itemIdx}`}
@@ -291,13 +288,13 @@ export default function HistoryPage() {
                         {item.quantity}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₨ {item.medicineId.purchasePrice}
+                        ₨ {item.sellingPrice}{" "}
+                        {item.medicineId?.purchasePrice
+                          ? `(Cost: ₨ ${item.medicineId.purchasePrice})`
+                          : ""}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₨ {item.sellingPrice}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ₨ {item.totalAmount}
+                        ₨ {item.totalAmount.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         ₨ {profit.toFixed(2)}
@@ -314,7 +311,7 @@ export default function HistoryPage() {
                             rowSpan={record.items.length}
                             className="text-right"
                           >
-                            ₨ {record.finalTotal}
+                            ₨ {record.finalTotal.toFixed(2)}
                           </TableCell>
                           <TableCell rowSpan={record.items.length}>
                             {new Date(record.createdAt).toLocaleDateString()}

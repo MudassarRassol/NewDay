@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import {
@@ -24,12 +24,13 @@ import {
 
 export default function SalesTransactionPage() {
   const [inventory, setInventory] = useState([]);
-  const [search, setSearch] = useState("");
   const [discount, setDiscount] = useState(0);
-
   const [loading, setLoading] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+
   const router = useRouter();
+  const qtyRefs = useRef({});
 
   useEffect(() => {
     const savedItems = localStorage.getItem("cartItems");
@@ -42,8 +43,7 @@ export default function SalesTransactionPage() {
     }
   }, []);
 
-
-  // ✅ Keyboard Shortcuts (Ctrl+P = Print, Ctrl+C = Cancel)
+  // 🔑 Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key.toLowerCase() === "p") {
@@ -54,29 +54,58 @@ export default function SalesTransactionPage() {
         e.preventDefault();
         handleCancel();
       }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : inventory.length - 1
+        );
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < inventory.length - 1 ? prev + 1 : 0
+        );
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const currentMed = inventory[highlightedIndex];
+        if (currentMed && qtyRefs.current[currentMed._id]) {
+          qtyRefs.current[currentMed._id].focus();
+        }
+      }
     };
-
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [inventory, discount]);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [inventory, highlightedIndex]);
 
+  // 🔑 Close transcript on Enter
+useEffect(() => {
+  if (!showTranscript) return;
 
-  const filteredInventory = inventory.filter((med) =>
-    med.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleEnterClose = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      router.push("/pages/staff");
+      setShowTranscript(false); // close modal -> redirect handled automatically
+
+    }
+  };
+
+  window.addEventListener("keydown", handleEnterClose);
+  return () => window.removeEventListener("keydown", handleEnterClose);
+}, [showTranscript]);
+
 
   const handleQuantityChange = (id, qty) => {
     setInventory((prev) =>
-      prev.map((med) => {
-        if (med._id === id) {
-          const availableStock = med.quantity;
-          const newQuantity = Math.min(Math.max(1, qty), availableStock);
-          return { ...med, saleQuantity: newQuantity };
-        }
-        return med;
-      })
+      prev.map((med) =>
+        med._id === id
+          ? {
+              ...med,
+              saleQuantity: Math.min(Math.max(1, qty), med.quantity),
+            }
+          : med
+      )
     );
   };
 
@@ -94,13 +123,11 @@ export default function SalesTransactionPage() {
   const total = subtotal - discountAmount;
   const profit = total * 0.4;
 
-
   const handlePrint = async () => {
     if (inventory.length === 0) {
       alert("No medicines in cart!");
       return;
     }
-
     setLoading(true);
     try {
       const payload = {
@@ -115,9 +142,7 @@ export default function SalesTransactionPage() {
         discount: discountAmount,
         finalTotal: total,
       };
-
       await axios.post("/api/history", payload);
-
       setShowTranscript(true);
     } catch (err) {
       console.error("Print failed:", err);
@@ -132,28 +157,32 @@ export default function SalesTransactionPage() {
     router.push("/pages/staff");
   };
 
-  // ✅ baki tumhara pura UI jaisa hai waisa hi chalega...
   return (
-   <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+    <div className="p-6 sm:p-10 bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen">
       {/* Header */}
-      <header className="flex justify-between items-center mb-6 border-b pb-3">
-        <h1 className="text-2xl sm:text-3xl font-bold">Sales Transaction</h1>
-        <nav className="flex gap-3">
+      <header className="flex justify-between items-center mb-8 border-b pb-4">
+        <h1 className="text-3xl font-extrabold tracking-tight text-blue-700">
+          💊 Sales Transaction
+        </h1>
+        <nav>
           <Link href="/pages/staff">
-            <Button variant="outline">Open Medicines</Button>
+            <Button
+              variant="outline"
+              className="hover:bg-blue-100 hover:text-blue-600"
+            >
+              Open Medicines
+            </Button>
           </Link>
         </nav>
       </header>
 
-      {/* Search Box */}
-
-      <div className="flex flex-col gap-4 items-center  justify-center ">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Medicines Table */}
-        <div className="overflow-x-auto md:w-[40%] rounded-lg border bg-white shadow-sm p-2">
-
+        <div className="lg:col-span-2 overflow-x-auto rounded-xl border bg-white shadow-lg">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-blue-50">
               <TableRow>
+                <TableHead>No</TableHead>
                 <TableHead>Medicine</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Price</TableHead>
@@ -162,48 +191,38 @@ export default function SalesTransactionPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInventory.map((med) => (
-                <TableRow key={med._id}>
-                  <TableCell>{med.name}</TableCell>
+              {inventory.map((med, index) => (
+                <TableRow
+                  key={med._id}
+                  className={`transition-colors duration-200 ${
+                    index === highlightedIndex
+                      ? "bg-blue-100 font-semibold"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell className="font-medium">{med.name}</TableCell>
                   <TableCell>
                     <Input
                       type="number"
                       value={med.saleQuantity === 0 ? "" : med.saleQuantity}
-                      className="w-20"
+                      className="w-20 text-center"
                       min="1"
                       max={med.quantity}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          setInventory((prev) =>
-                            prev.map((m) =>
-                              m._id === med._id ? { ...m, saleQuantity: 0 } : m
-                            )
-                          );
-                          return;
-                        }
-                        const qty = parseInt(value, 10);
-                        if (!isNaN(qty)) {
-                          handleQuantityChange(med._id, qty);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        if (!value || value < 1) {
-                          handleQuantityChange(med._id, 1);
-                        }
-                      }}
+                      ref={(el) => (qtyRefs.current[med._id] = el)}
+                      onChange={(e) =>
+                        handleQuantityChange(med._id, parseInt(e.target.value))
+                      }
                     />
                     <p className="text-xs text-gray-500">
                       Stock: {med.quantity}
                     </p>
                   </TableCell>
                   <TableCell>₨ {med.sellingPrice}</TableCell>
-
                   <TableCell>₨ {med.sellingPrice * med.saleQuantity}</TableCell>
-
                   <TableCell>
                     <Button
+                      size="sm"
                       variant="destructive"
                       onClick={() => handleDelete(med._id)}
                     >
@@ -216,196 +235,121 @@ export default function SalesTransactionPage() {
           </Table>
         </div>
 
+        {/* Checkout Card */}
+        <div className="rounded-xl border bg-white shadow-lg p-6 backdrop-blur">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">
+            Checkout Summary
+          </h2>
 
-        {/* Checkout Box */}
-        <div className="rounded-lg md:w-[40%] border bg-white p-4 sm:p-6 shadow-sm">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 mb-2">
-              Discount (₨)
-            </label>
-            <Input
-              type="number"
-              value={discount === 0 ? "" : discount}
-              min={0}
-              max={subtotal}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === "") {
-                  setDiscount(0);
-                } else {
-                  const discountValue = parseInt(value, 10);
-                  if (!isNaN(discountValue)) {
-                    setDiscount(Math.max(0, discountValue));
-                  }
-                }
-              }}
-              onBlur={(e) => {
-                if (!e.target.value || parseInt(e.target.value, 10) < 0) {
-                  setDiscount(0);
-                }
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {discountAmount} Rs ({discountPercent}%)
-            </p>
-          </div>
-          <div className="space-y-2 border-t border-gray-200 pt-4">
-            <div className="flex justify-between text-sm">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Discount (₨)
+          </label>
+          <Input
+            type="number"
+            value={discount === 0 ? "" : discount}
+            min={0}
+            max={subtotal}
+            onChange={(e) => setDiscount(parseInt(e.target.value) || 0)}
+            className="mb-3"
+          />
+          <p className="text-xs text-gray-500 mb-4">
+            {discountAmount} Rs ({discountPercent}%)
+          </p>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
               <p>Subtotal</p>
               <p>₨ {subtotal}</p>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <p>Discount</p>
               <p>₨ {discountAmount}</p>
             </div>
-            <div className="flex justify-between text-base font-semibold border-t border-gray-200 pt-2">
+            <div className="flex justify-between font-semibold text-base border-t pt-2">
               <p>Total Price</p>
               <p>₨ {total}</p>
             </div>
-            <div className="flex justify-between text-sm text-green-600">
+            <div className="flex justify-between text-green-600">
               <p>Total Profit</p>
               <p>₨ {profit}</p>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2 sm:gap-3">
+
+          <div className="mt-6 flex gap-3">
             <Button
-              className="w-[80%] bg-blue-500 hover:bg-blue-600"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
               onClick={handlePrint}
               disabled={loading}
             >
-              {loading ? "Processing..." : "Print"}
+              {loading ? "Processing..." : "🖨️ Print"}
             </Button>
             <Button
-              className="w-[20%] bg-red-500 hover:bg-red-600"
-              onClick={handleCancel} // ✅ اب Cancel صحیح
+              className="w-24 bg-gradient-to-r from-red-500 to-red-600 text-white"
+              onClick={handleCancel}
               disabled={loading}
             >
-              Cancel
+              ✖ Cancel
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Transcript Modal */}
-      <Dialog open={showTranscript} onOpenChange={setShowTranscript}>
-        <DialogContent className="max-w-3xl">
+      {/* Receipt Modal */}
+      <Dialog
+        open={showTranscript}
+        onOpenChange={(open) => {
+          setShowTranscript(open);
+          if (!open) {
+            localStorage.removeItem("cartItems"); // clear cart after print
+            router.push("/pages/staff"); // go back to medicine page
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Sales Transcript</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-blue-700">
+              🧾 Sales Receipt
+            </DialogTitle>
           </DialogHeader>
-
-          {/* Receipt */}
-          <div
-            id="receipt"
-            className="bg-white p-6 flex flex-col text-sm border rounded-md shadow-sm"
-          >
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold">NewDay Pharmacy</h1>
-              <p>03006914479 | 03126906640</p>
-              <hr className="my-2 border-gray-400" />
+          <div id="receipt" className="bg-white p-4 text-sm">
+            <div className="text-center mb-4">
+              <h1 className="text-lg font-bold">NewDay Pharmacy</h1>
+              <p className="text-gray-500 text-xs">03006914479 | 03126906640</p>
+              <hr className="my-2 border-dashed" />
             </div>
-
-            <div className="flex-grow">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>No</TableHead>
-                    <TableHead>Medicine</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Total</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>No</TableHead>
+                  <TableHead>Medicine</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventory.map((item, index) => (
+                  <TableRow key={item._id || index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.saleQuantity}</TableCell>
+                    <TableCell>
+                      ₨ {item.sellingPrice * item.saleQuantity}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inventory.map((item, index) => (
-                    <TableRow key={item._id || index}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.saleQuantity}</TableCell>
-                      <TableCell>₨ {item.sellingPrice}</TableCell>
-                      <TableCell>
-                        ₨ {item.sellingPrice * item.saleQuantity}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-4 border-t pt-2 space-y-1 text-right">
+              <p>Gross Total: ₨ {subtotal}</p>
+              <p>Discount: ₨ {discountAmount}</p>
+              <p className="font-bold text-lg">Net Total: ₨ {total}</p>
             </div>
-
-            <div className="mt-6 border-t pt-4 space-y-1">
-              <div className="flex flex-row items-center justify-between">
-                <p>Gross Total : ₨ {subtotal}</p>
-                 <p>Discount : ₨ {discountAmount} </p>
-              </div>
-              <div className="flex justify-between font-bold text-lg mt-2 items-end  ">
-                <p>Net Total : ₨ {total}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 mt-6">
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-blue-500 hover:bg-blue-600"
-              onClick={() => {
-                const printContents =
-                  document.getElementById("receipt")?.innerHTML;
-                if (printContents) {
-                  const newWin = window.open("", "_blank");
-                  newWin.document.write(`
-        <html>
-          <head>
-            <title>Print Receipt</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; background: #fff; }
-              .receipt { 
-                max-width: 380px;  
-                margin: auto; 
-                border: 1px solid #ddd; 
-                border-radius: 6px; 
-                padding: 16px; 
-                font-size: 13px;
-                 text-align: center; 
-              }
-              h1 { font-size: 20px; margin: 0;text-align: center;  }
-              .header { text-align: center; margin-bottom: 10px; }
-              .header p { margin: 0; font-size: 12px; }
-              hr { margin: 8px 0; border: 1px dashed #ccc; }
-              table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-              th, td { border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 12px; }
-              th { background: #f5f5f5; }
-              .totals { margin-top: 10px; padding-top: 6px; border-top: 1px solid #ccc; }
-              .totals div { display: flex; justify-content: space-between; margin: 4px 0; }
-              .totals div:last-child { font-weight: bold; font-size: 14px; }
-              .footer { text-align: center; margin-top: 12px; font-size: 11px; color: #555; }
-            </style>
-          </head>
-          <body>
-            <div class="receipt">
-              ${printContents}
-              <div class="footer">
-                Thank you for choosing <b>NewDay Pharmacy</b><br/>
-                Get well soon! 🌿
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-                  newWin.document.close();
-                  newWin.focus();
-                  newWin.print();
-                  newWin.close();
-                }
-              }}
-            >
-              Print
-            </Button>
+            <p className="mt-4 text-center text-xs text-gray-500">
+              Thank you for choosing NewDay Pharmacy 🌿
+            </p>
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

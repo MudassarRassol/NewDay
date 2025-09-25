@@ -65,6 +65,10 @@ export default function InventoryPage() {
     );
   });// ✅ Shortcuts + Navigation
   useEffect(() => {
+
+      if (isAddModalOpen || isEditModalOpen) return; // 🚫 Disable when modal is open
+
+
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
@@ -108,7 +112,7 @@ export default function InventoryPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedItems, filteredInventory, focusedIndex]);
+  }, [isAddModalOpen, isEditModalOpen,selectedItems, filteredInventory, focusedIndex]);
 
   // ✅ Toggle single select
   const toggleSelect = (id) => {
@@ -299,7 +303,7 @@ export default function InventoryPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => deleteItem(item._id)}
+                      onClick={() => deleteSelected(item._id)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>

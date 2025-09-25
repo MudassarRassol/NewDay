@@ -25,16 +25,17 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
   const [loading, setLoading] = useState(false);
 
   // ✅ Refs
+  const nameRef = useRef(null);
   const genericRef = useRef(null);
   const expiryDayRef = useRef(null);
   const expiryMonthRef = useRef(null);
   const expiryYearRef = useRef(null);
+  const categoryRef = useRef(null);
+  const customCategoryRef = useRef(null);
   const quantityRef = useRef(null);
   const purchasePriceRef = useRef(null);
   const sellingPriceRef = useRef(null);
-  const customCategoryRef = useRef(null);
 
-  // ✅ Load medicine data when editing
   useEffect(() => {
     if (medicine) {
       setName(medicine.name || "");
@@ -51,7 +52,6 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
       setPurchasePrice(medicine.purchasePrice || "");
       setSellingPrice(medicine.sellingPrice || "");
 
-      // ✅ If medicine.category is not a default one, treat it as "Other"
       const defaultCategories = ["General", "Tablet", "Capsule", "Syrup", "Injection"];
       if (defaultCategories.includes(medicine.category)) {
         setCategory(medicine.category);
@@ -63,24 +63,71 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     }
   }, [medicine]);
 
-  const handleEnterFocus = (e, nextRef) => {
-    if (e.key === "Enter" && nextRef?.current) {
+  // helpers
+  const onlyDigits = (val, maxLen = Infinity) =>
+    (val || "").replace(/\D/g, "").slice(0, maxLen);
+
+  const focusNext = (ref) => ref?.current && setTimeout(() => ref.current.focus(), 0);
+  const focusPrev = (ref) => {
+    if (ref?.current) {
+      setTimeout(() => {
+        ref.current.focus();
+        try {
+          const v = ref.current.value || "";
+          ref.current.setSelectionRange(v.length, v.length);
+        } catch {}
+      }, 0);
+    }
+  };
+
+  // same keyboard handler as AddMedicineModal
+  const handleKeyDown = (e, prevRef, nextRef) => {
+    const tag = e.target?.tagName?.toUpperCase() || "";
+    if (tag === "SELECT" || tag === "TEXTAREA" || e.target.getAttribute?.("role") === "listbox") {
+      return;
+    }
+
+    if (e.key === "Backspace") {
+      try {
+        const input = e.target;
+        if ((input.value === "" || input.selectionStart === 0) && prevRef?.current) {
+          e.preventDefault();
+          focusPrev(prevRef);
+          return;
+        }
+      } catch {}
+    }
+
+    if (["ArrowRight", "ArrowDown"].includes(e.key)) {
       e.preventDefault();
-      nextRef.current.focus();
+      if (nextRef?.current) focusNext(nextRef);
+      return;
+    }
+    if (["ArrowLeft", "ArrowUp"].includes(e.key)) {
+      e.preventDefault();
+      if (prevRef?.current) focusPrev(prevRef);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (
+        name && generic && expiryDay && expiryMonth && expiryYear &&
+        quantity && purchasePrice && sellingPrice &&
+        (category !== "Other" || customCategory)
+      ) {
+        handleSubmit();
+      } else if (nextRef?.current) {
+        focusNext(nextRef);
+      }
     }
   };
 
   const handleSubmit = async () => {
     if (
-      !name ||
-      !generic ||
-      !expiryDay ||
-      !expiryMonth ||
-      !expiryYear ||
-      !quantity ||
-      !purchasePrice ||
-      !sellingPrice ||
-      (!category && !customCategory)
+      !name || !generic || !expiryDay || !expiryMonth || !expiryYear ||
+      !quantity || !purchasePrice || !sellingPrice ||
+      (category === "Other" && !customCategory)
     ) {
       return alert("Please fill all fields");
     }
@@ -89,7 +136,9 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     }
 
     const expiry = new Date(
-      `${expiryYear}-${expiryMonth}-${expiryDay}`
+      Number(expiryYear),
+      Number(expiryMonth) - 1,
+      Number(expiryDay)
     ).toISOString();
 
     const finalCategory = category === "Other" ? customCategory : category;
@@ -122,18 +171,17 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Name */}
           <div className="grid gap-2">
             <Label>Medicine Name</Label>
             <Input
+              ref={nameRef}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter medicine name"
-              onKeyDown={(e) => handleEnterFocus(e, genericRef)}
+              onKeyDown={(e) => handleKeyDown(e, null, genericRef)}
             />
           </div>
 
-          {/* Generic */}
           <div className="grid gap-2">
             <Label>Generic</Label>
             <Input
@@ -141,114 +189,105 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
               value={generic}
               onChange={(e) => setGeneric(e.target.value)}
               placeholder="Enter generic"
-              onKeyDown={(e) => handleEnterFocus(e, expiryDayRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, expiryDayRef)}
             />
           </div>
 
-          {/* Expiry */}
           <div className="grid gap-2">
             <Label>Expiry Date</Label>
             <div className="flex gap-2">
               <Input
-                type="number"
                 ref={expiryDayRef}
-                value={expiryDay}
-                onChange={(e) => setExpiryDay(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                maxLength={2}
                 placeholder="DD"
                 className="w-16"
-                onKeyDown={(e) => handleEnterFocus(e, expiryMonthRef)}
+                value={expiryDay}
+                onChange={(e) => setExpiryDay(onlyDigits(e.target.value, 2))}
+                onKeyDown={(e) => handleKeyDown(e, genericRef, expiryMonthRef)}
               />
               <Input
-                type="number"
                 ref={expiryMonthRef}
-                value={expiryMonth}
-                onChange={(e) => setExpiryMonth(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                maxLength={2}
                 placeholder="MM"
                 className="w-16"
-                onKeyDown={(e) => handleEnterFocus(e, expiryYearRef)}
+                value={expiryMonth}
+                onChange={(e) => setExpiryMonth(onlyDigits(e.target.value, 2))}
+                onKeyDown={(e) => handleKeyDown(e, expiryDayRef, expiryYearRef)}
               />
               <Input
-                type="number"
                 ref={expiryYearRef}
-                value={expiryYear}
-                onChange={(e) => setExpiryYear(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
                 placeholder="YYYY"
                 className="w-24"
-                onKeyDown={(e) =>
-                  handleEnterFocus(
-                    e,
-                    category === "Other" ? customCategoryRef : quantityRef
-                  )
-                }
+                value={expiryYear}
+                onChange={(e) => setExpiryYear(onlyDigits(e.target.value, 4))}
+                onKeyDown={(e) => handleKeyDown(e, expiryMonthRef, categoryRef)}
               />
             </div>
           </div>
 
-          {/* Category */}
           <div className="grid gap-2">
             <Label>Category</Label>
-            <select
+            <Input
+              id="category"
+              ref={categoryRef}
+              autoComplete="off"
+              spellCheck={false}
+              type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="border rounded p-2"
-            >
-              <option value="General">General</option>
-              <option value="Tablet">Tablet</option>
-              <option value="Capsule">Capsule</option>
-              <option value="Syrup">Syrup</option>
-              <option value="Injection">Injection</option>
-              <option value="Other">Other</option>
-            </select>
-            {category === "Other" && (
-              <Input
-                ref={customCategoryRef}
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Enter custom category"
-                onKeyDown={(e) => handleEnterFocus(e, quantityRef)}
-              />
-            )}
+              placeholder="Enter category (Tablet, Syrup, etc)"
+              onKeyDown={(e) => handleKeyDown(e, expiryYearRef, quantityRef)}
+            />
+
           </div>
 
-          {/* Quantity */}
           <div className="grid gap-2">
             <Label>Quantity</Label>
             <Input
-              type="number"
               ref={quantityRef}
+              type="text"
+              inputMode="numeric"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={(e) => setQuantity(onlyDigits(e.target.value))}
               placeholder="Enter quantity"
-              onKeyDown={(e) => handleEnterFocus(e, purchasePriceRef)}
+              onKeyDown={(e) => handleKeyDown(e, category === "Other" ? customCategoryRef : categoryRef, purchasePriceRef)}
             />
           </div>
 
-          {/* Prices */}
           <div className="grid gap-2">
             <Label>Purchase Price (₨)</Label>
             <Input
-              type="number"
               ref={purchasePriceRef}
+              type="text"
+              inputMode="decimal"
               value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
+              onChange={(e) =>
+                setPurchasePrice(e.target.value.replace(/[^0-9.]/g, ""))
+              }
               placeholder="Enter purchase price"
-              onKeyDown={(e) => handleEnterFocus(e, sellingPriceRef)}
+              onKeyDown={(e) => handleKeyDown(e, quantityRef, sellingPriceRef)}
             />
           </div>
+
           <div className="grid gap-2">
             <Label>Selling Price (₨)</Label>
             <Input
-              type="number"
               ref={sellingPriceRef}
+              type="text"
+              inputMode="decimal"
               value={sellingPrice}
-              onChange={(e) => setSellingPrice(e.target.value)}
-              placeholder="Enter selling price"
-              onKeyDown={(e) =>
-                handleEnterFocus(
-                  e,
-                  category === "Other" ? customCategoryRef : null
-                )
+              onChange={(e) =>
+                setSellingPrice(e.target.value.replace(/[^0-9.]/g, ""))
               }
+              placeholder="Enter selling price"
+              onKeyDown={(e) => handleKeyDown(e, purchasePriceRef, null)} // ✅ null = submit
             />
           </div>
         </div>

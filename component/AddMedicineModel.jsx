@@ -1,4 +1,6 @@
-import { useState, useRef } from "react";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,21 +25,114 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
   const [customCategory, setCustomCategory] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Refs for inputs
+  // Refs (ordering = flow)
+  const nameRef = useRef(null);
   const genericRef = useRef(null);
   const expiryDayRef = useRef(null);
   const expiryMonthRef = useRef(null);
   const expiryYearRef = useRef(null);
+  const categoryRef = useRef(null);
+  const customCategoryRef = useRef(null);
   const quantityRef = useRef(null);
   const purchasePriceRef = useRef(null);
   const sellingPriceRef = useRef(null);
-  const customCategoryRef = useRef(null);
 
-  const handleEnterFocus = (e, nextRef) => {
-    if (e.key === "Enter" && nextRef?.current) {
-      e.preventDefault();
-      nextRef.current.focus();
+  useEffect(() => {
+    // optional: focus first field when modal opens
+    if (open) setTimeout(() => nameRef.current?.focus(), 0);
+  }, [open]);
+
+  const onlyDigits = (val, maxLen = Infinity) =>
+    (val || "").replace(/\D/g, "").slice(0, maxLen);
+
+  const focusNext = (ref) => {
+    if (ref?.current) setTimeout(() => ref.current.focus(), 0);
+  };
+
+  const focusPrev = (ref) => {
+    if (ref?.current)
+      setTimeout(() => {
+        ref.current.focus();
+        // move caret to end if it's an input
+        try {
+          const v = ref.current.value || "";
+          ref.current.setSelectionRange(v.length, v.length);
+        } catch {}
+      }, 0);
+  };
+
+  // main keyboard handler
+  const handleKeyDown = (e, prevRef, nextRef) => {
+    const tag =
+      e.target && e.target.tagName ? e.target.tagName.toUpperCase() : "";
+    if (
+      tag === "SELECT" ||
+      tag === "TEXTAREA" ||
+      e.target.getAttribute?.("role") === "listbox"
+    ) {
+      return;
     }
+
+    if (e.key === "Backspace") {
+      try {
+        const input = e.target;
+        const caret = input.selectionStart;
+        if ((input.value === "" || caret === 0) && prevRef?.current) {
+          e.preventDefault();
+          focusPrev(prevRef);
+          return;
+        }
+      } catch {}
+    }
+
+    if (["ArrowRight", "ArrowDown"].includes(e.key)) {
+      e.preventDefault();
+      if (nextRef?.current) focusNext(nextRef);
+      return;
+    }
+
+    if (["ArrowLeft", "ArrowUp"].includes(e.key)) {
+      e.preventDefault();
+      if (prevRef?.current) focusPrev(prevRef);
+      return;
+    }
+
+    // ✅ ENTER key
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // if all fields filled -> submit directly
+      if (
+        name &&
+        generic &&
+        expiryDay &&
+        expiryMonth &&
+        expiryYear &&
+        category &&
+        quantity &&
+        purchasePrice &&
+        sellingPrice
+      ) {
+        handleSubmit();
+      } else if (nextRef?.current) {
+        // else move to next
+        focusNext(nextRef);
+      }
+    }
+  };
+
+  // onBlur normalization for expiry fields (optional caps/clamp)
+  const normalizeExpiry = () => {
+    // clamp day 1-31, month 1-12, year reasonable
+    const d = Number(expiryDay || 0);
+    const m = Number(expiryMonth || 0);
+    const y = Number(expiryYear || 0);
+
+    if (d > 31) setExpiryDay("31");
+    if (d === 0 && expiryDay.length > 0) setExpiryDay("1");
+    if (m > 12) setExpiryMonth("12");
+    if (m === 0 && expiryMonth.length > 0) setExpiryMonth("1");
+    if (y < 1900 && expiryYear.length > 0)
+      setExpiryYear(String(Math.max(1900, y)));
   };
 
   const handleSubmit = async () => {
@@ -50,7 +145,7 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
       !quantity ||
       !purchasePrice ||
       !sellingPrice ||
-      (!category && !customCategory)
+      !category
     ) {
       return alert("Please fill all the fields");
     }
@@ -66,9 +161,11 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
       return alert("Please enter valid numbers");
     }
 
-    const finalCategory = category === "Other" ? customCategory : category;
-
-    const expiryDate = new Date(Number(expiryYear), Number(expiryMonth) - 1, Number(expiryDay));
+    const expiryDate = new Date(
+      Number(expiryYear),
+      Number(expiryMonth) - 1,
+      Number(expiryDay)
+    );
 
     setLoading(true);
     try {
@@ -79,9 +176,10 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
         quantity: Number(quantity),
         purchasePrice: Number(purchasePrice),
         sellingPrice: Number(sellingPrice),
-        category: finalCategory,
+        category,
       });
 
+      // reset
       setName("");
       setGeneric("");
       setExpiryDay("");
@@ -91,11 +189,9 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
       setPurchasePrice("");
       setSellingPrice("");
       setCategory("");
-      setCustomCategory("");
-
       onClose();
     } catch (err) {
-      console.error("Error adding medicine:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -109,75 +205,123 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {/* Name */}
           <div className="grid gap-2">
             <Label htmlFor="name">Medicine Name</Label>
             <Input
               id="name"
+              ref={nameRef}
+              autoComplete="off"
+              spellCheck={false}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter medicine name"
-              onKeyDown={(e) => handleEnterFocus(e, genericRef)}
+              onKeyDown={(e) => handleKeyDown(e, null, genericRef)}
             />
           </div>
 
+          {/* Generic */}
           <div className="grid gap-2">
             <Label htmlFor="generic">Generic</Label>
             <Input
               id="generic"
               ref={genericRef}
+              autoComplete="off"
+              spellCheck={false}
               value={generic}
               onChange={(e) => setGeneric(e.target.value)}
               placeholder="Enter generic"
-              onKeyDown={(e) => handleEnterFocus(e, expiryDayRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, expiryDayRef)}
             />
           </div>
 
+          {/* Expiry */}
           <div className="grid gap-2">
             <Label>Expiry Date</Label>
             <div className="flex gap-2">
               <Input
-                type="number"
-                min="1"
-                max="31"
+                id="expiryDay"
                 ref={expiryDayRef}
-                value={expiryDay}
-                onChange={(e) => setExpiryDay(e.target.value)}
+                type="text" // TEXT so arrow up/down don't change value
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
                 placeholder="DD"
                 className="w-1/3"
-                onKeyDown={(e) => handleEnterFocus(e, expiryMonthRef)}
+                value={expiryDay}
+                onChange={(e) => {
+                  const v = onlyDigits(e.target.value, 2);
+                  setExpiryDay(v);
+                  if (v.length >= 2) focusNext(expiryMonthRef);
+                }}
+                onKeyDown={(e) => handleKeyDown(e, genericRef, expiryMonthRef)}
               />
+
               <Input
-                type="number"
-                min="1"
-                max="12"
+                id="expiryMonth"
                 ref={expiryMonthRef}
-                value={expiryMonth}
-                onChange={(e) => setExpiryMonth(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
                 placeholder="MM"
                 className="w-1/3"
-                onKeyDown={(e) => handleEnterFocus(e, expiryYearRef)}
+                value={expiryMonth}
+                onChange={(e) => {
+                  const v = onlyDigits(e.target.value, 2);
+                  setExpiryMonth(v);
+                  if (v.length >= 2) focusNext(expiryYearRef);
+                }}
+                onKeyDown={(e) => handleKeyDown(e, expiryDayRef, expiryYearRef)}
               />
+
               <Input
-                type="number"
-                min="2024"
-                max="2100"
+                id="expiryYear"
                 ref={expiryYearRef}
-                value={expiryYear}
-                onChange={(e) => setExpiryYear(e.target.value)}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
                 placeholder="YYYY"
                 className="w-1/3"
-                onKeyDown={(e) => handleEnterFocus(e, category === "Other" ? customCategoryRef : quantityRef)}
+                value={expiryYear}
+                onChange={(e) => {
+                  const v = onlyDigits(e.target.value, 4);
+                  setExpiryYear(v);
+                  if (v.length >= 4) {
+                    // if we have selected a category already, go to category; else just focus category
+                    focusNext(categoryRef);
+                  }
+                }}
+                onKeyDown={(e) => handleKeyDown(e, expiryMonthRef, categoryRef)}
+                onBlur={normalizeExpiry}
               />
             </div>
           </div>
 
-          <div className="grid gap-2">
+          {/* Category */}
+          {/* <div className="grid gap-2">
             <Label htmlFor="category">Category</Label>
             <select
               id="category"
+              ref={categoryRef}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="border rounded-md p-2"
+              onKeyDown={(e) => {
+                // if user presses Enter on category, move to customCategory (if Other) or to quantity
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (categoryRef?.current) {
+                    // after change, decide next target
+                    const next =
+                      category === "Other" ? customCategoryRef : quantityRef;
+                    focusNext(next);
+                  } else {
+                    focusNext(quantityRef);
+                  }
+                }
+              }}
             >
               <option value="">Select category</option>
               <option value="Tablet">Tablet</option>
@@ -187,62 +331,96 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
               <option value="Cream">Cream</option>
               <option value="Other">Other</option>
             </select>
+          </div> */}
+
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category</Label>
+ <Input
+              id="category"
+              ref={categoryRef}
+              autoComplete="off"
+              spellCheck={false}
+              type="text"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Enter category (Tablet, Syrup, etc)"
+              onKeyDown={(e) => handleKeyDown(e, expiryYearRef, quantityRef)}
+            />
           </div>
 
-          {category === "Other" && (
-            <div className="grid gap-2">
-              <Label htmlFor="customCategory">Custom Category</Label>
-              <Input
-                id="customCategory"
-                ref={customCategoryRef}
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Enter your own category"
-                onKeyDown={(e) => handleEnterFocus(e, quantityRef)}
-              />
-            </div>
-          )}
-
+          {/* Quantity */}
           <div className="grid gap-2">
             <Label htmlFor="quantity">Quantity</Label>
             <Input
-              type="number"
               id="quantity"
               ref={quantityRef}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={(e) => setQuantity(onlyDigits(e.target.value))}
               placeholder="Enter quantity"
-              onKeyDown={(e) => handleEnterFocus(e, purchasePriceRef)}
+              onKeyDown={(e) =>
+                handleKeyDown(
+                  e,
+                  category === "Other" ? customCategoryRef : categoryRef,
+                  purchasePriceRef
+                )
+              }
             />
           </div>
 
+          {/* Purchase Price */}
           <div className="grid gap-2">
             <Label htmlFor="purchasePrice">Purchase Price (₨)</Label>
             <Input
-              type="number"
               id="purchasePrice"
               ref={purchasePriceRef}
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*"
               value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
+              onChange={(e) =>
+                // allow digits and one dot for decimal if needed
+                setPurchasePrice((prev) => {
+                  const raw = e.target.value.replace(/[^0-9.]/g, "");
+                  // prevent more than one dot
+                  const parts = raw.split(".");
+                  return parts.length > 1
+                    ? parts[0] + "." + parts.slice(1).join("")
+                    : raw;
+                })
+              }
               placeholder="Enter purchase price"
-              onKeyDown={(e) => handleEnterFocus(e, sellingPriceRef)}
+              onKeyDown={(e) => handleKeyDown(e, quantityRef, sellingPriceRef)}
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="sellingPrice">Selling Price (₨)</Label>
-            <Input
-              type="number"
-              id="sellingPrice"
-              ref={sellingPriceRef}
-              value={sellingPrice}
-              onChange={(e) => setSellingPrice(e.target.value)}
-              placeholder="Enter selling price"
-              onKeyDown={(e) => handleEnterFocus(e)}
-            />
+  <div className="grid gap-2">
+            <Label htmlFor="purchasePrice">Selling Price (₨)</Label>
+                      <Input
+            id="sellingPrice"
+            ref={sellingPriceRef}
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*"
+            value={sellingPrice}
+            onChange={(e) =>
+              setSellingPrice((prev) => {
+                const raw = e.target.value.replace(/[^0-9.]/g, "");
+                const parts = raw.split(".");
+                return parts.length > 1
+                  ? parts[0] + "." + parts.slice(1).join("")
+                  : raw;
+              })
+            }
+            placeholder="Enter selling price"
+            onKeyDown={(e) => handleKeyDown(e, purchasePriceRef, null)} // ✅ null = submit on Enter
+          />
           </div>
         </div>
 
+        {/* Actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel

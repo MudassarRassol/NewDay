@@ -16,21 +16,32 @@ import StaffHeader from "../../../component/StaffHeader";
 import { Loader2 } from "lucide-react";
 import axios from "axios";
 
-export default function StaffPage() {
+export default function MedicinePage() {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [newMed, setNewMed] = useState({
+    name: "",
+    generic: "",
+    category: "",
+    quantity: "",
+    purchasePrice: "",
+    sellingPrice: "",
+    expiry: "",
+  });
 
-  // ✅ search input ref
   const searchRef = useRef(null);
 
   useEffect(() => {
     const savedStatus = localStorage.getItem("status");
-    setStatus(savedStatus);
+    setStatus(savedStatus || "");
   }, []);
 
   const fetchMedicines = async () => {
@@ -45,25 +56,9 @@ export default function StaffPage() {
     }
   };
 
-
-
-
   useEffect(() => {
     if (status === "active") fetchMedicines();
   }, [status]);
-
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cartItems");
-    if (savedCart) {
-      try {
-        const items = JSON.parse(savedCart);
-        const ids = items.map((i) => i._id);
-        setSelectedMedicines(ids);
-      } catch (err) {
-        console.error("Failed to parse saved cart", err);
-      }
-    }
-  }, []);
 
   const filteredInventory = inventory.filter(
     (item) =>
@@ -94,7 +89,7 @@ export default function StaffPage() {
     setSelectedMedicines([]);
   }, []);
 
-  // ✅ Keyboard shortcuts
+  // ✅ Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key.toLowerCase() === "p") {
@@ -105,16 +100,35 @@ export default function StaffPage() {
         e.preventDefault();
         handleClear();
       }
-      // ✅ Ctrl + S → focus on search
       if (e.ctrlKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
         searchRef.current?.focus();
+      }
+
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+        e.preventDefault();
+        if (filteredInventory.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+          setFocusedIndex((prev) =>
+            prev + 1 >= filteredInventory.length ? 0 : prev + 1
+          );
+        }
+        if (e.key === "ArrowUp") {
+          setFocusedIndex((prev) =>
+            prev - 1 < 0 ? filteredInventory.length - 1 : prev - 1
+          );
+        }
+        if (e.key === "Enter" || e.key === " ") {
+          const current = filteredInventory[focusedIndex];
+          if (current && current.quantity > 0) toggleSelect(current._id);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleCheckout, handleClear]);
+  }, [filteredInventory, focusedIndex]);
 
   const highlightText = (text, search) => {
     if (!search) return text;
@@ -129,6 +143,30 @@ export default function StaffPage() {
         part
       )
     );
+  };
+
+  const handleAddMedicine = async () => {
+    try {
+      await axios.post("/api/medicines", {
+        ...newMed,
+        quantity: parseInt(newMed.quantity),
+        purchasePrice: parseFloat(newMed.purchasePrice),
+        sellingPrice: parseFloat(newMed.sellingPrice),
+      });
+      setShowModal(false);
+      setNewMed({
+        name: "",
+        generic: "",
+        category: "",
+        quantity: "",
+        purchasePrice: "",
+        sellingPrice: "",
+        expiry: "",
+      });
+      fetchMedicines();
+    } catch (err) {
+      console.error("Failed to add medicine", err);
+    }
   };
 
   if (status === "inactive") {
@@ -147,15 +185,14 @@ export default function StaffPage() {
       <StaffHeader />
       <div className="p-8 relative">
         <div className="flex flex-wrap justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-primary">Sell Medicines</h1>
+          <h1 className="text-2xl font-bold text-primary">Manage Medicines</h1>
           <div className="flex items-center gap-4">
-            {/* ✅ search input with ref + autofocus */}
             <Input
               ref={searchRef}
               placeholder="Search medicines..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl  "
+              className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl"
               autoFocus
               tabIndex={1}
             />
@@ -207,25 +244,25 @@ export default function StaffPage() {
                 filteredInventory.map((item, index) => (
                   <TableRow
                     key={item._id}
-                    className={
+                    className={`${
                       item.quantity === 0
                         ? "bg-gray-100 opacity-50 pointer-events-none"
                         : ""
-                    }
+                    } ${index === focusedIndex ? "bg-blue-100" : ""}`}
                   >
-                    <TableCell className=" border " >{index + 1}</TableCell>
-                    <TableCell className=" border ">{highlightText(item.name, search)}</TableCell>
-                    <TableCell className=" border ">{highlightText(item.generic, search)}</TableCell>
-                    <TableCell className=" border ">{item.category || "None"}</TableCell>
+                    <TableCell className="border">{index + 1}</TableCell>
+                    <TableCell className="border">{highlightText(item.name, search)}</TableCell>
+                    <TableCell className="border">{highlightText(item.generic, search)}</TableCell>
+                    <TableCell className="border">{item.category || "None"}</TableCell>
                     <TableCell
                       className={
-                        item.quantity === 0 ? "text-red-600" : "text-green-500"
+                        item.quantity === 0 || item.quantity <= 10 ? "text-red-600" : "text-green-500"
                       }
                     >
                       {item.quantity}
                     </TableCell>
-                    <TableCell className=" border ">₨ {item.purchasePrice}</TableCell>
-                    <TableCell className=" border ">₨ {item.sellingPrice}</TableCell>
+                    <TableCell className="border">₨ {item.purchasePrice}</TableCell>
+                    <TableCell className="border">₨ {item.sellingPrice}</TableCell>
                     <TableCell
                       className={
                         new Date(item.expiry) < new Date()
@@ -241,13 +278,6 @@ export default function StaffPage() {
                         disabled={item.quantity === 0}
                         checked={selectedMedicines.includes(item._id)}
                         onCheckedChange={() => toggleSelect(item._id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            toggleSelect(item._id);
-                          }
-                        }}
-                        tabIndex={4 + index}
                       />
                     </TableCell>
                   </TableRow>
@@ -257,6 +287,48 @@ export default function StaffPage() {
           </Table>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg p-8 w-[600px] shadow-xl">
+            <h2 className="text-xl font-bold mb-6 text-center">Add New Medicine</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {Object.keys(newMed).map((key) => (
+                <Input
+                  key={key}
+                  placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
+                  value={(newMed)[key]}
+                  onChange={(e) =>
+                    setNewMed((prev) => ({ ...prev, [key]: e.target.value }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddMedicine();
+                    }
+                  }}
+                  className="py-6 border-2 border-blue-950 placeholder:text-blue-950 text-lg"
+                />
+              ))}
+            </div>
+            <div className="flex justify-end mt-6 gap-4">
+              <Button
+                className="px-6 py-6 bg-gray-500 hover:bg-gray-600 text-white"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="px-10 py-6 bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleAddMedicine}
+              >
+                Save Medicine
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
