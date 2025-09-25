@@ -176,7 +176,8 @@ useEffect(() => {
         </nav>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className=" flex items-center justify-center  " >
+            <div className=" flex  flex-col  lg:w-[60%]  gap-6">
         {/* Medicines Table */}
         <div className="lg:col-span-2 overflow-x-auto rounded-xl border bg-white shadow-lg">
           <Table>
@@ -293,6 +294,7 @@ useEffect(() => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Receipt Modal */}
       <Dialog

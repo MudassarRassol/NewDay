@@ -92,10 +92,20 @@ export default function MedicinePage() {
   // ✅ Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key.toLowerCase() === "p") {
+      if (e.key == "ArrowRight") {
         e.preventDefault();
         handleCheckout();
       }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (searchRef.current) {
+          const input = searchRef.current;
+          input.focus();
+          const length = input.value.length;
+          input.setSelectionRange(length, length);
+        }
+      }
+
       if (e.ctrlKey && e.key.toLowerCase() === "c") {
         e.preventDefault();
         handleClear();
@@ -175,7 +185,9 @@ export default function MedicinePage() {
         <h1 className="text-2xl font-bold text-red-600 mb-4">
           Your Account is NOT ACTIVE
         </h1>
-        <p className="text-gray-700">Please contact admin to activate your account.</p>
+        <p className="text-gray-700">
+          Please contact admin to activate your account.
+        </p>
       </div>
     );
   }
@@ -197,7 +209,11 @@ export default function MedicinePage() {
               tabIndex={1}
             />
             <div className="flex gap-3">
-              <Button className="px-10 py-7" onClick={handleCheckout} tabIndex={2}>
+              <Button
+                className="px-10 py-7"
+                onClick={handleCheckout}
+                tabIndex={2}
+              >
                 View Bill ({selectedMedicines.length})
               </Button>
               <Button
@@ -251,18 +267,30 @@ export default function MedicinePage() {
                     } ${index === focusedIndex ? "bg-blue-100" : ""}`}
                   >
                     <TableCell className="border">{index + 1}</TableCell>
-                    <TableCell className="border">{highlightText(item.name, search)}</TableCell>
-                    <TableCell className="border">{highlightText(item.generic, search)}</TableCell>
-                    <TableCell className="border">{item.category || "None"}</TableCell>
+                    <TableCell className="border">
+                      {highlightText(item.name, search)}
+                    </TableCell>
+                    <TableCell className="border">
+                      {highlightText(item.generic, search)}
+                    </TableCell>
+                    <TableCell className="border">
+                      {item.category || "None"}
+                    </TableCell>
                     <TableCell
                       className={
-                        item.quantity === 0 || item.quantity <= 10 ? "text-red-600" : "text-green-500"
+                        item.quantity === 0 || item.quantity <= 5
+                          ? "text-red-600"
+                          : "text-green-500"
                       }
                     >
                       {item.quantity}
                     </TableCell>
-                    <TableCell className="border">₨ {item.purchasePrice}</TableCell>
-                    <TableCell className="border">₨ {item.sellingPrice}</TableCell>
+                    <TableCell className="border">
+                      ₨ {item.purchasePrice}
+                    </TableCell>
+                    <TableCell className="border">
+                      ₨ {item.sellingPrice}
+                    </TableCell>
                     <TableCell
                       className={
                         new Date(item.expiry) < new Date()
@@ -292,13 +320,15 @@ export default function MedicinePage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg p-8 w-[600px] shadow-xl">
-            <h2 className="text-xl font-bold mb-6 text-center">Add New Medicine</h2>
+            <h2 className="text-xl font-bold mb-6 text-center">
+              Add New Medicine
+            </h2>
             <div className="grid grid-cols-2 gap-4">
               {Object.keys(newMed).map((key) => (
                 <Input
                   key={key}
                   placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
-                  value={(newMed)[key]}
+                  value={newMed[key]}
                   onChange={(e) =>
                     setNewMed((prev) => ({ ...prev, [key]: e.target.value }))
                   }
