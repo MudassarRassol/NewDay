@@ -123,45 +123,43 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     }
   };
 
-  const handleSubmit = async () => {
-    if (
-      !name || !generic || !expiryDay || !expiryMonth || !expiryYear ||
-      !quantity || !purchasePrice || !sellingPrice ||
-      (category === "Other" && !customCategory)
-    ) {
-      return alert("Please fill all fields");
-    }
-    if (isNaN(quantity) || isNaN(purchasePrice) || isNaN(sellingPrice)) {
-      return alert("Quantity and prices must be numbers");
-    }
+const handleSubmit = async () => {
+  if (
+    !name || !generic || !expiryDay || !expiryMonth || !expiryYear ||
+    !quantity || !purchasePrice || !sellingPrice || !category
+  ) {
+    return alert("Please fill all fields");
+  }
+  if (isNaN(quantity) || isNaN(purchasePrice) || isNaN(sellingPrice)) {
+    return alert("Quantity and prices must be numbers");
+  }
 
-    const expiry = new Date(
-      Number(expiryYear),
-      Number(expiryMonth) - 1,
-      Number(expiryDay)
-    ).toISOString();
+  const expiry = new Date(
+    Number(expiryYear),
+    Number(expiryMonth) - 1,
+    Number(expiryDay)
+  ).toISOString();
 
-    const finalCategory = category === "Other" ? customCategory : category;
+  setLoading(true);
+  try {
+    await onSave({
+      id: medicine?._id,
+      name,
+      generic,
+      expiry,
+      quantity: Number(quantity),
+      purchasePrice: Number(purchasePrice),
+      sellingPrice: Number(sellingPrice),
+      category,
+    });
+    onClose();
+  } catch (err) {
+    console.error("Error updating medicine:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setLoading(true);
-    try {
-      await onSave({
-        id: medicine?._id,
-        name,
-        generic,
-        expiry,
-        quantity: Number(quantity),
-        purchasePrice: Number(purchasePrice),
-        sellingPrice: Number(sellingPrice),
-        category: finalCategory,
-      });
-      onClose();
-    } catch (err) {
-      console.error("Error updating medicine:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

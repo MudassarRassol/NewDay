@@ -179,7 +179,30 @@ export default function HistoryPage() {
     }
   };
 
-  // ✅ Calculate total profit
+  // ✅ Total Quantity Sold
+  const totalQuantity = filteredHistory.reduce((sum, record) => {
+    return (
+      sum +
+      record.items.reduce(
+        (itemSum, item) => itemSum + Number(item.quantity || 0),
+        0
+      )
+    );
+  }, 0);
+
+  // ✅ Total Sales (Revenue)
+  const totalSales = filteredHistory.reduce((sum, record) => {
+    return (
+      sum +
+      record.items.reduce((itemSum, item) => {
+        const selling = Number(item.sellingPrice || 0);
+        const qty = Number(item.quantity || 0);
+        return itemSum + selling * qty;
+      }, 0)
+    );
+  }, 0);
+
+  // ✅ Total Profit (already done, keep your version)
   const totalProfit = filteredHistory.reduce((sum, record) => {
     return (
       sum +
@@ -344,13 +367,20 @@ export default function HistoryPage() {
             )}
 
             {/* 🔹 Total Profit Row */}
+            {/* 🔹 Summary Row */}
             {filteredHistory.length > 0 && (
               <TableRow className="bg-gray-100 font-bold">
-                <TableCell colSpan={6} className="text-right">
-                  Total Profit:
+                <TableCell colSpan={4} className="text-right">
+                  Total Quantity Sold: {totalQuantity}
                 </TableCell>
-                <TableCell colSpan={5} className="text-left">
-                  ₨ {totalProfit.toFixed(2)}
+
+                <TableCell colSpan={4} className="text-right">
+                  Total Sales (₨):   ₨ {totalSales.toFixed(2)}
+                </TableCell>
+
+
+                <TableCell colSpan={4} className="text-right text-green-600">
+                  Profit: ₨ {totalProfit.toFixed(2)}
                 </TableCell>
               </TableRow>
             )}

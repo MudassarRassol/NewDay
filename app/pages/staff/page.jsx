@@ -44,6 +44,25 @@ export default function MedicinePage() {
     setStatus(savedStatus || "");
   }, []);
 
+  // Restore cartItems from localStorage
+useEffect(() => {
+  const savedCart = localStorage.getItem("cartItems");
+  if (savedCart) {
+    try {
+      const parsed = JSON.parse(savedCart);
+      const ids = parsed.map((m) => m._id); // sirf IDs nikal lo
+      setSelectedMedicines(ids);
+    } catch (err) {
+      console.error("Failed to parse cartItems:", err);
+    }
+  }
+}, []);
+
+useEffect(() => {
+  if (status === "active") fetchMedicines();
+}, [status]);
+
+
   const fetchMedicines = async () => {
     setLoading(true);
     try {
@@ -96,13 +115,17 @@ export default function MedicinePage() {
         e.preventDefault();
         handleCheckout();
       }
+
       if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        if (searchRef.current) {
-          const input = searchRef.current;
-          input.focus();
-          const length = input.value.length;
-          input.setSelectionRange(length, length);
+        // Agar search pe focus NHI hai tab hi custom logic chalega
+        if (document.activeElement !== searchRef.current) {
+          e.preventDefault();
+          if (searchRef.current) {
+            const input = searchRef.current;
+            input.focus();
+            const length = input.value.length;
+            input.setSelectionRange(length, length);
+          }
         }
       }
 

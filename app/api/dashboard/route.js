@@ -21,7 +21,10 @@ export async function GET(req) {
     });
 
     // ✅ Total TP (Quantity * PurchasePrice)
-    const medicines = await MedicineModel.find({}, "quantity purchasePrice");
+    const medicines = await MedicineModel.find(
+      {},
+      "quantity sellingPrice purchasePrice"
+    );
 
     const totalTP = medicines.reduce(
       (sum, med) => sum + (med.quantity || 0) * (med.purchasePrice || 0),
@@ -37,18 +40,31 @@ export async function GET(req) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
+
+
+    // ✅ Today sales & profit
     const todaySales = await HistoryModel.find({
       createdAt: { $gte: startOfDay, $lte: endOfDay },
-    });
+    }).populate("items.medicineId", "purchasePrice"); // 👈 populate purchasePrice
 
+    // ✅ Total Sales = sum of finalTotal
     const totalSales = todaySales.reduce(
-      (sum, record) => sum + record.finalTotal,
+      (sum, record) => sum + (record.finalTotal || 0),
       0
     );
-    const totalProfit = todaySales.reduce(
-      (sum, record) => sum + record.items.reduce((s, i) => s + i.profit, 0),
-      0
-    );
+
+    // ✅ Total Profit = (selling - purchase) × quantity
+    const totalProfit = todaySales.reduce((sum, record) => {
+      return (
+        sum +
+        record.items.reduce((s, i) => {
+          const selling = Number(i.sellingPrice || 0);
+          const purchase = Number(i.medicineId?.purchasePrice || 0);
+          const qty = Number(i.quantity || 0);
+          return s + (selling - purchase) * qty;
+        }, 0)
+      );
+    }, 0);
 
     // ✅ Round values
     const roundedSales = Math.floor(totalSales);

@@ -135,6 +135,13 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
       setExpiryYear(String(Math.max(1900, y)));
   };
 
+  // helper function
+const capitalizeWords = (str) =>
+  str
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+
   const handleSubmit = async () => {
     if (
       !name ||
@@ -214,7 +221,7 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
               autoComplete="off"
               spellCheck={false}
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setName(capitalizeWords(e.target.value))}
               placeholder="Enter medicine name"
               onKeyDown={(e) => handleKeyDown(e, null, genericRef)}
             />

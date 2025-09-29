@@ -43,40 +43,79 @@ export default function SalesTransactionPage() {
     }
   }, []);
 
+
+  // 🔑 Backspace = Go back to Medicines
+useEffect(() => {
+  const handleBack = (e) => {
+    if (e.key === "Backspace") {
+      // Agar input field pe focus nahi hai tohi chale
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag !== "INPUT" && activeTag !== "TEXTAREA") {
+        e.preventDefault();
+        router.push("/pages/staff");
+      }
+    }
+  };
+
+  window.addEventListener("keydown", handleBack);
+  return () => window.removeEventListener("keydown", handleBack);
+}, [router]);
+
+
   // 🔑 Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        handlePrint();
+useEffect(() => {
+  const handleKeyDown = (e) => {
+    // Ctrl + P = Print
+    if (e.ctrlKey && e.key.toLowerCase() === "p") {
+      e.preventDefault();
+      handlePrint();
+      return;
+    }
+
+    // Ctrl + C = Cancel
+    if (e.ctrlKey && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      handleCancel();
+      return;
+    }
+
+    // ❌ Prevent arrow up/down affecting number input values
+    const activeTag = (document.activeElement)?.tagName;
+    if (
+      (activeTag === "INPUT" || activeTag === "TEXTAREA") &&
+      (e.key === "ArrowUp" || e.key === "ArrowDown")
+    ) {
+      e.preventDefault();
+      return; // stop here so value won't change
+    }
+
+    // ✅ Only navigate medicine rows
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev > 0 ? prev - 1 : inventory.length - 1
+      );
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev < inventory.length - 1 ? prev + 1 : 0
+      );
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const currentMed = inventory[highlightedIndex];
+      if (currentMed && qtyRefs.current[currentMed._id]) {
+        qtyRefs.current[currentMed._id].focus();
       }
-      if (e.ctrlKey && e.key.toLowerCase() === "c") {
-        e.preventDefault();
-        handleCancel();
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev > 0 ? prev - 1 : inventory.length - 1
-        );
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < inventory.length - 1 ? prev + 1 : 0
-        );
-      }
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const currentMed = inventory[highlightedIndex];
-        if (currentMed && qtyRefs.current[currentMed._id]) {
-          qtyRefs.current[currentMed._id].focus();
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [inventory, highlightedIndex]);
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [inventory, highlightedIndex]);
 
   // 🔑 Close transcript on Enter
 useEffect(() => {
@@ -355,3 +394,4 @@ useEffect(() => {
     </div>
   );
 }
+``
