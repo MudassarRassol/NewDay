@@ -41,7 +41,7 @@ export default function HistoryPage() {
     try {
       const res = await axios.get("/api/history");
       setHistory(res.data);
-      console.log(res)
+      console.log(res);
     } catch (err) {
       console.error("Failed to fetch history", err);
     } finally {
@@ -256,10 +256,12 @@ export default function HistoryPage() {
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Price/Unit (₨)</TableHead>
               <TableHead className="text-right">Total (₨)</TableHead>
+              <TableHead className="text-right">SC (₨)</TableHead>
               <TableHead className="text-right">Discount (₨)</TableHead>
               <TableHead className="text-right">Final Total (₨)</TableHead>
+
               <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Profit (₨)</TableHead>
+              <TableHead className="text-right">Profit (₨)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -295,6 +297,7 @@ export default function HistoryPage() {
                       {itemIdx === 0 && (
                         <>
                           <TableCell
+
                             className="border"
                             rowSpan={record.items.length}
                           >
@@ -322,6 +325,9 @@ export default function HistoryPage() {
                       </TableCell>
                       <TableCell className="text-right border">
                         ₨ {item.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right border">
+                        ₨ {item.service}
                       </TableCell>
 
                       {itemIdx === 0 && (
@@ -351,7 +357,7 @@ export default function HistoryPage() {
                       </TableCell>
                       {itemIdx === 0 && (
                         <>
-                                                  <TableCell
+                          <TableCell
                             rowSpan={record.items.length}
                             className="text-right gap-2"
                           >
@@ -371,8 +377,7 @@ export default function HistoryPage() {
                             </Button>
                           </TableCell>
                         </>
-                      )
-                      }
+                      )}
                     </TableRow>
                   );
                 })

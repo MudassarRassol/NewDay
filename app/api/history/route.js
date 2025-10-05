@@ -8,9 +8,10 @@ export async function POST(req) {
   await connectDB();
 
   try {
+    console.log('run')
     const body = await req.json();
     const { items, discount = 0, finalTotal ,serviceprice } = body;
-
+    console.log(serviceprice , body)
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "No items provided" }, { status: 400 });
     }

@@ -30,6 +30,29 @@ export default function SalesTransactionPage() {
   const [showTranscript, setShowTranscript] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const discountRef = useRef(null);
+  const serviceRef = useRef(null);
+
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      // Ctrl + D → focus Discount
+      if (e.ctrlKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        discountRef.current?.focus();
+        setIsInputFocused(true);
+      }
+
+      // Ctrl + S → focus Service Price
+      if (e.ctrlKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        serviceRef.current?.focus();
+        setIsInputFocused(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
 
   const router = useRouter();
   const qtyRefs = useRef({});
@@ -244,7 +267,7 @@ export default function SalesTransactionPage() {
     subtotal > 0 ? ((discountAmount / subtotal) * 100).toFixed(2) : 0;
   const total = subtotal - discountAmount + serviceprice;
   const profit = total * 0.4;
- 
+
   const handlePrint = async () => {
     if (inventory.length === 0) {
       alert("No medicines in cart!");
@@ -256,7 +279,6 @@ export default function SalesTransactionPage() {
         items: inventory.map((med) => ({
           medicineId: med._id || med.id,
           name: med.name,
-          serviceprice : serviceprice,
           quantity: med.saleQuantity || 1,
           sellingPrice: med.sellingPrice,
           totalAmount: med.sellingPrice * (med.saleQuantity || 1),
@@ -265,7 +287,9 @@ export default function SalesTransactionPage() {
         })),
         discount: discountAmount,
         finalTotal: total,
+        serviceprice: serviceprice,
       };
+      console.log(payload);
       await axios.post("/api/history", payload);
       setShowTranscript(true);
     } catch (err) {
@@ -321,21 +345,21 @@ export default function SalesTransactionPage() {
 
       {/* Keyboard Shortcuts Help */}
       {/* <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="font-semibold text-blue-800 mb-2">
-          Keyboard Shortcuts:
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-          <div>↑↓ : Navigate Rows</div>
-          <div>Enter : Edit Quantity</div>
-          <div>1-9 : Set Quantity</div>
-          <div>Tab : Next Row</div>
-          <div>→ : Print Bill</div>
-          <div>← : Add More Meds</div>
-          <div>Esc : Exit Input</div>
-          <div>Enter in Input : Save & Next</div>
-          <div>Enter in Receipt : Close & Go Back</div>
-        </div>
-      </div> */}
+          <h3 className="font-semibold text-blue-800 mb-2">
+            Keyboard Shortcuts:
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+            <div>↑↓ : Navigate Rows</div>
+            <div>Enter : Edit Quantity</div>
+            <div>1-9 : Set Quantity</div>
+            <div>Tab : Next Row</div>
+            <div>→ : Print Bill</div>
+            <div>← : Add More Meds</div>
+            <div>Esc : Exit Input</div>
+            <div>Enter in Input : Save & Next</div>
+            <div>Enter in Receipt : Close & Go Back</div>
+          </div>
+        </div> */}
 
       <div className="flex items-center justify-center w-[100%]">
         <div className="p-2 md:w-[70%] flex items-center justify-center">
@@ -433,6 +457,7 @@ export default function SalesTransactionPage() {
                   Discount (₨)
                 </label>
                 <Input
+                  ref={discountRef}
                   type="number"
                   value={discount === 0 ? "" : discount}
                   min={0}
@@ -442,6 +467,7 @@ export default function SalesTransactionPage() {
                   onFocus={() => setIsInputFocused(true)}
                   onBlur={handleInputBlur}
                 />
+
                 <p className="text-xs text-gray-500">
                   {discountAmount} Rs ({discountPercent}%)
                 </p>
@@ -451,6 +477,7 @@ export default function SalesTransactionPage() {
                   Service (₨)
                 </label>
                 <Input
+                  ref={serviceRef}
                   type="number"
                   value={serviceprice === 0 ? "" : serviceprice}
                   min={0}
