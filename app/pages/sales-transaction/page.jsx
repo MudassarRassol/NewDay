@@ -321,7 +321,7 @@ export default function SalesTransactionPage() {
       </header>
 
       {/* Keyboard Shortcuts Help */}
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+      {/* <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="font-semibold text-blue-800 mb-2">
           Keyboard Shortcuts:
         </h3>
@@ -336,7 +336,7 @@ export default function SalesTransactionPage() {
           <div>Enter in Input : Save & Next</div>
           <div>Enter in Receipt : Close & Go Back</div>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex items-center justify-center w-[100%]">
         <div className="p-2 md:w-[70%] flex items-center justify-center">
