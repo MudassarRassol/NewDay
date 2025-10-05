@@ -9,7 +9,7 @@ export async function POST(req) {
 
   try {
     const body = await req.json();
-    const { items, discount = 0, finalTotal } = body;
+    const { items, discount = 0, finalTotal ,serviceprice } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "No items provided" }, { status: 400 });
@@ -41,6 +41,7 @@ export async function POST(req) {
         sellingPrice: sp,
         totalAmount,
         profit: profit < 0 ? 0 : profit,
+        service : serviceprice
       };
     });
 

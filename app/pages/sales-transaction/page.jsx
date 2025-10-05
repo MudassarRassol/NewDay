@@ -25,6 +25,7 @@ import {
 export default function SalesTransactionPage() {
   const [inventory, setInventory] = useState([]);
   const [discount, setDiscount] = useState(0);
+  const [serviceprice, setserviceprice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -172,7 +173,7 @@ export default function SalesTransactionPage() {
 
   const handleQuantityChange = (id, qty) => {
     if (isNaN(qty) || qty < 1) return;
-    
+
     setInventory((prev) =>
       prev.map((med) =>
         med._id === id
@@ -189,11 +190,7 @@ export default function SalesTransactionPage() {
     // Allow empty value for better UX when typing
     if (value === "") {
       setInventory((prev) =>
-        prev.map((med) =>
-          med._id === id
-            ? { ...med, saleQuantity: "" }
-            : med
-        )
+        prev.map((med) => (med._id === id ? { ...med, saleQuantity: "" } : med))
       );
       return;
     }
@@ -245,9 +242,9 @@ export default function SalesTransactionPage() {
   const discountAmount = Math.min(discount, subtotal);
   const discountPercent =
     subtotal > 0 ? ((discountAmount / subtotal) * 100).toFixed(2) : 0;
-  const total = subtotal - discountAmount;
+  const total = subtotal - discountAmount + serviceprice;
   const profit = total * 0.4;
-
+ 
   const handlePrint = async () => {
     if (inventory.length === 0) {
       alert("No medicines in cart!");
@@ -259,10 +256,12 @@ export default function SalesTransactionPage() {
         items: inventory.map((med) => ({
           medicineId: med._id || med.id,
           name: med.name,
+          serviceprice : serviceprice,
           quantity: med.saleQuantity || 1,
           sellingPrice: med.sellingPrice,
           totalAmount: med.sellingPrice * (med.saleQuantity || 1),
-          profit: (med.sellingPrice - med.purchasePrice) * (med.saleQuantity || 1),
+          profit:
+            (med.sellingPrice - med.purchasePrice) * (med.saleQuantity || 1),
         })),
         discount: discountAmount,
         finalTotal: total,
@@ -377,10 +376,7 @@ export default function SalesTransactionPage() {
                           max={med.quantity}
                           ref={(el) => (qtyRefs.current[med._id] = el)}
                           onChange={(e) =>
-                            handleInputChange(
-                              med._id,
-                              e.target.value
-                            )
+                            handleInputChange(med._id, e.target.value)
                           }
                           onFocus={() => handleInputFocus(index)}
                           onBlur={handleInputBlur}
@@ -450,11 +446,32 @@ export default function SalesTransactionPage() {
                   {discountAmount} Rs ({discountPercent}%)
                 </p>
               </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Service (₨)
+                </label>
+                <Input
+                  type="number"
+                  value={serviceprice === 0 ? "" : serviceprice}
+                  min={0}
+                  max={subtotal}
+                  onChange={(e) =>
+                    setserviceprice(parseInt(e.target.value) || 0)
+                  }
+                  className="mb-2"
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={handleInputBlur}
+                />
+              </div>
 
               <div className="space-y-2 text-sm mb-6">
                 <div className="flex justify-between">
                   <p>Subtotal</p>
                   <p>₨ {subtotal}</p>
+                </div>
+                <div className="flex justify-between">
+                  <p>Service</p>
+                  <p>₨ {serviceprice}</p>
                 </div>
                 <div className="flex justify-between">
                   <p>Discount</p>

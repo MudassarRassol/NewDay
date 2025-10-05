@@ -10,6 +10,10 @@ const HistorySchema = new mongoose.Schema(
           required: true,
           trim: true,
         },
+        service:{
+          type : Number,
+          default : 0
+        },
         quantity: {
           type: Number,
           required: true,

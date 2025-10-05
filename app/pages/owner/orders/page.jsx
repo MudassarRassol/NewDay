@@ -41,6 +41,7 @@ export default function HistoryPage() {
     try {
       const res = await axios.get("/api/history");
       setHistory(res.data);
+      console.log(res)
     } catch (err) {
       console.error("Failed to fetch history", err);
     } finally {
@@ -255,10 +256,10 @@ export default function HistoryPage() {
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Price/Unit (₨)</TableHead>
               <TableHead className="text-right">Total (₨)</TableHead>
-              <TableHead className="text-right">Profit (₨)</TableHead>
               <TableHead className="text-right">Discount (₨)</TableHead>
               <TableHead className="text-right">Final Total (₨)</TableHead>
               <TableHead>Date</TableHead>
+                            <TableHead className="text-right">Profit (₨)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -293,7 +294,10 @@ export default function HistoryPage() {
                     >
                       {itemIdx === 0 && (
                         <>
-                          <TableCell rowSpan={record.items.length}>
+                          <TableCell
+                            className="border"
+                            rowSpan={record.items.length}
+                          >
                             <input
                               className="ml-4"
                               type="checkbox"
@@ -306,40 +310,48 @@ export default function HistoryPage() {
                           </TableCell>
                         </>
                       )}
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="border">{item.name}</TableCell>
+                      <TableCell className="text-right border">
                         {item.quantity}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right border">
                         ₨ {item.sellingPrice}{" "}
                         {item.medicineId?.purchasePrice
                           ? `(Cost: ₨ ${item.medicineId.purchasePrice})`
                           : ""}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right border">
                         ₨ {item.totalAmount.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        ₨ {profit.toFixed(2)}
-                      </TableCell>
+
                       {itemIdx === 0 && (
                         <>
                           <TableCell
                             rowSpan={record.items.length}
-                            className="text-right"
+                            className="text-right border"
                           >
                             ₨ {record.discount}
                           </TableCell>
                           <TableCell
                             rowSpan={record.items.length}
-                            className="text-right"
+                            className="text-right border"
                           >
                             ₨ {record.finalTotal.toFixed(2)}
                           </TableCell>
-                          <TableCell rowSpan={record.items.length}>
+                          <TableCell
+                            className="border"
+                            rowSpan={record.items.length}
+                          >
                             {new Date(record.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell
+                        </>
+                      )}
+                      <TableCell className="text-right border">
+                        ₨ {profit.toFixed(2)}
+                      </TableCell>
+                      {itemIdx === 0 && (
+                        <>
+                                                  <TableCell
                             rowSpan={record.items.length}
                             className="text-right gap-2"
                           >
@@ -359,7 +371,8 @@ export default function HistoryPage() {
                             </Button>
                           </TableCell>
                         </>
-                      )}
+                      )
+                      }
                     </TableRow>
                   );
                 })
@@ -370,16 +383,15 @@ export default function HistoryPage() {
             {/* 🔹 Summary Row */}
             {filteredHistory.length > 0 && (
               <TableRow className="bg-gray-100 font-bold">
-                <TableCell colSpan={4} className="text-right">
+                <TableCell colSpan={2} className="text-right">
                   Total Quantity Sold: {totalQuantity}
                 </TableCell>
 
                 <TableCell colSpan={4} className="text-right">
-                  Total Sales (₨):   ₨ {totalSales.toFixed(2)}
+                  Total Sales (₨): ₨ {totalSales.toFixed(2)}
                 </TableCell>
 
-
-                <TableCell colSpan={4} className="text-right text-green-600">
+                <TableCell colSpan={6} className="text-right text-green-600">
                   Profit: ₨ {totalProfit.toFixed(2)}
                 </TableCell>
               </TableRow>

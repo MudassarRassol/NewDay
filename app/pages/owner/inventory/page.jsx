@@ -256,40 +256,40 @@ export default function InventoryPage() {
                       : ""
                   }
                 >
-                  <TableCell>
+                  <TableCell className='border' >
                     <input
                       type="checkbox"
                       checked={selectedItems.includes(item._id)}
                       onChange={() => toggleSelect(item._id)}
                     />
                   </TableCell>
-                  <TableCell className="text-red-950">{index + 1}</TableCell>
-                  <TableCell className="text-blue-600">
+                  <TableCell className="text-red-950 border">{index + 1}</TableCell>
+                  <TableCell className="text-blue-600 border">
                     {highlightText(item.name, search)}
                   </TableCell>
-                  <TableCell className="text-primary">
+                  <TableCell className="text-primary border">
                     {highlightText(item.generic, search)}
                   </TableCell>
-                  <TableCell className="text-primary">
+                  <TableCell className="text-primary border">
                     {item.category ? highlightText(item.category, search) : "None"}
                   </TableCell>
-                  <TableCell className="text-green-500">
+                  <TableCell className="text-green-500 border">
                     {item.quantity}
                   </TableCell>
                   <TableCell>₨ {item.purchasePrice}</TableCell>
-                  <TableCell className="text-primary">
+                  <TableCell className="text-primary border">
                     ₨ {item.sellingPrice}
                   </TableCell>
                   <TableCell
                     className={
                       new Date(item.expiry) < new Date()
-                        ? "text-red-500 font-semibold"
+                        ? "text-red-500 font-semibold border" 
                         : ""
                     }
                   >
                     {new Date(item.expiry).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right flex gap-2 justify-end">
+                  <TableCell className="text-right flex gap-2 justify-end border">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -298,14 +298,14 @@ export default function InventoryPage() {
                         setIsEditModalOpen(true);
                       }}
                     >
-                      <Edit className="h-4 w-4 text-blue-500" />
+                      <Edit className="h-4 w-4 text-blue-500 border" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={() => deleteSelected(item._id)}
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-red-500 border" />
                     </Button>
                   </TableCell>
                 </TableRow>

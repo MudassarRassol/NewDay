@@ -236,7 +236,7 @@ const capitalizeWords = (str) =>
               autoComplete="off"
               spellCheck={false}
               value={generic}
-              onChange={(e) => setGeneric(e.target.value)}
+              onChange={(e) => setGeneric(capitalizeWords(e.target.value))}
               placeholder="Enter generic"
               onKeyDown={(e) => handleKeyDown(e, nameRef, expiryDayRef)}
             />
@@ -349,7 +349,7 @@ const capitalizeWords = (str) =>
               spellCheck={false}
               type="text"
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => setCategory(capitalizeWords(e.target.value))}
               placeholder="Enter category (Tablet, Syrup, etc)"
               onKeyDown={(e) => handleKeyDown(e, expiryYearRef, quantityRef)}
             />
