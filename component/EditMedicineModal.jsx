@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
   const [name, setName] = useState("");
   const [generic, setGeneric] = useState("");
+  const [RAG, setRAG] = useState("");
   const [expiryDay, setExpiryDay] = useState("");
   const [expiryMonth, setExpiryMonth] = useState("");
   const [expiryYear, setExpiryYear] = useState("");
@@ -27,6 +28,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
   // ✅ Refs
   const nameRef = useRef(null);
   const genericRef = useRef(null);
+  const RAGRef = useRef(null);
   const expiryDayRef = useRef(null);
   const expiryMonthRef = useRef(null);
   const expiryYearRef = useRef(null);
@@ -40,6 +42,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     if (medicine) {
       setName(medicine.name || "");
       setGeneric(medicine.generic || "");
+      setRAG(medicine.rag || "");
 
       if (medicine.expiry) {
         const date = new Date(medicine.expiry);
@@ -112,7 +115,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
     if (e.key === "Enter") {
       e.preventDefault();
       if (
-        name && generic && expiryDay && expiryMonth && expiryYear &&
+        name && generic && RAG && expiryDay && expiryMonth && expiryYear &&
         quantity && purchasePrice && sellingPrice &&
         (category !== "Other" || customCategory)
       ) {
@@ -125,7 +128,7 @@ export default function EditMedicineModal({ open, onClose, onSave, medicine }) {
 
 const handleSubmit = async () => {
   if (
-    !name || !generic || !expiryDay || !expiryMonth || !expiryYear ||
+    !name || !generic || !RAG || !expiryDay || !expiryMonth || !expiryYear ||
     !quantity || !purchasePrice || !sellingPrice || !category
   ) {
     return alert("Please fill all fields");
@@ -146,6 +149,7 @@ const handleSubmit = async () => {
       id: medicine?._id,
       name,
       generic,
+      rag: RAG,
       expiry,
       quantity: Number(quantity),
       purchasePrice: Number(purchasePrice),
@@ -187,7 +191,18 @@ const handleSubmit = async () => {
               value={generic}
               onChange={(e) => setGeneric(e.target.value)}
               placeholder="Enter generic"
-              onKeyDown={(e) => handleKeyDown(e, nameRef, expiryDayRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, RAGRef)}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>RAG</Label>
+            <Input
+              ref={RAGRef}
+              value={RAG}
+              onChange={(e) => setRAG(e.target.value)}
+              placeholder="Enter RAG"
+              onKeyDown={(e) => handleKeyDown(e, genericRef, expiryDayRef)}
             />
           </div>
 

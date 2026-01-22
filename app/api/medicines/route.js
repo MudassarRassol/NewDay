@@ -16,12 +16,13 @@ export async function POST(req) {
   try {
 
 
-    const { name, generic,category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
+    const { name, generic, rag, category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
 
 
     const medicine = await MedicineModel.create({
       name,
       generic,
+      rag,
       expiry,
       quantity,
       category,
@@ -41,11 +42,11 @@ export async function PUT(req) {
   await connectDB();
   try {
 
-    const { id, name, generic,category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
+    const { id, name, generic, rag, category, expiry, quantity, purchasePrice, sellingPrice } = await req.json();
 
     const medicine = await MedicineModel.findByIdAndUpdate(
       id,
-      { name, generic, expiry, quantity, purchasePrice,category, sellingPrice },
+      { name, generic, rag, expiry, quantity, purchasePrice, category, sellingPrice },
       { new: true }
     );
 

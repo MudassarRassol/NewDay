@@ -30,6 +30,7 @@ export default function MedicinePage() {
   const [newMed, setNewMed] = useState({
     name: "",
     generic: "",
+    rag: "",
     category: "",
     quantity: "",
     purchasePrice: "",
@@ -82,7 +83,8 @@ useEffect(() => {
   const filteredInventory = inventory.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.generic.toLowerCase().includes(search.toLowerCase())
+      item.generic.toLowerCase().includes(search.toLowerCase()) ||
+      (item.rag && item.rag.toLowerCase().includes(search.toLowerCase()))
   );
 
   const toggleSelect = (id) => {
@@ -126,7 +128,7 @@ useEffect(() => {
             const length = input.value.length;
             input.setSelectionRange(length, length);
           }
-        }
+        }a
       }
 
       if (e.ctrlKey && e.key.toLowerCase() === "c") {
@@ -152,7 +154,7 @@ useEffect(() => {
             prev - 1 < 0 ? filteredInventory.length - 1 : prev - 1
           );
         }
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === "Eanter" || e.key === " ") {
           const current = filteredInventory[focusedIndex];
           if (current && current.quantity > 0) toggleSelect(current._id);
         }
@@ -190,13 +192,14 @@ useEffect(() => {
       setNewMed({
         name: "",
         generic: "",
+        rag: "",
         category: "",
         quantity: "",
         purchasePrice: "",
         sellingPrice: "",
         expiry: "",
       });
-      fetchMedicines();
+      fetchMedicines();f
     } catch (err) {
       console.error("Failed to add medicine", err);
     }
@@ -220,7 +223,7 @@ useEffect(() => {
       <StaffHeader />
       <div className="p-8 relative">
         <div className="flex flex-wrap justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-primary">Manage Medicines</h1>
+          <h1 className="text-2xl font-bold text-primary">Manage Medicine</h1>
           <div className="flex items-center gap-4">
             <Input
               ref={searchRef}
@@ -258,6 +261,7 @@ useEffect(() => {
                 <TableHead>No</TableHead>
                 <TableHead>Medicine Name</TableHead>
                 <TableHead>(Generic)</TableHead>
+                 <TableHead>Rag</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Tp</TableHead>
@@ -295,6 +299,9 @@ useEffect(() => {
                     </TableCell>
                     <TableCell className="border">
                       {highlightText(item.generic, search)}
+                    </TableCell>
+                    <TableCell className="border">
+                      {item.rag || "None"}
                     </TableCell>
                     <TableCell className="border">
                       {item.category || "None"}

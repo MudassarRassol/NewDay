@@ -22,6 +22,7 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
   const [category, setCategory] = useState("");
+  const [RAG, setRAG] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,6 +36,7 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
   const customCategoryRef = useRef(null);
   const quantityRef = useRef(null);
   const purchasePriceRef = useRef(null);
+  const RAGRef = useRef(null);
   const sellingPriceRef = useRef(null);
 
   useEffect(() => {
@@ -104,13 +106,14 @@ export default function AddMedicineModal({ open, onClose, onSave }) {
       if (
         name &&
         generic &&
+        RAG &&
         expiryDay &&
         expiryMonth &&
         expiryYear &&
         category &&
         quantity &&
         purchasePrice &&
-        sellingPrice
+        sellingPrice 
       ) {
         handleSubmit();
       } else if (nextRef?.current) {
@@ -152,7 +155,8 @@ const capitalizeWords = (str) =>
       !quantity ||
       !purchasePrice ||
       !sellingPrice ||
-      !category
+      !category ||
+      !RAG
     ) {
       return alert("Please fill all the fields");
     }
@@ -184,6 +188,7 @@ const capitalizeWords = (str) =>
         purchasePrice: Number(purchasePrice),
         sellingPrice: Number(sellingPrice),
         category,
+        rag: RAG,
       });
 
       // reset
@@ -196,6 +201,7 @@ const capitalizeWords = (str) =>
       setPurchasePrice("");
       setSellingPrice("");
       setCategory("");
+      setRAG("");
       onClose();
     } catch (err) {
       console.error(err);
@@ -238,7 +244,22 @@ const capitalizeWords = (str) =>
               value={generic}
               onChange={(e) => setGeneric(capitalizeWords(e.target.value))}
               placeholder="Enter generic"
-              onKeyDown={(e) => handleKeyDown(e, nameRef, expiryDayRef)}
+              onKeyDown={(e) => handleKeyDown(e, nameRef, RAGRef)}
+            />
+          </div>
+
+          {/* RAG */}
+          <div className="grid gap-2">
+            <Label htmlFor="RAG">RAG</Label>
+            <Input
+              id="RAG"
+              ref={RAGRef}
+              autoComplete="off"
+              spellCheck={false}
+              value={RAG}
+              onChange={(e) => setRAG(capitalizeWords(e.target.value))}
+              placeholder="Enter RAG"
+              onKeyDown={(e) => handleKeyDown(e, genericRef, expiryDayRef)}
             />
           </div>
 
