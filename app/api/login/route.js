@@ -41,12 +41,22 @@ export async function POST(req) {
     .sign(secret);
 
   // ✅ Save JWT in HttpOnly cookie
-  await(cookies()).set("authToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24, // 1 day
-  });
+  // await(cookies()).set("authToken", token, {
+  //   httpOnly: true,
+  //   secure: process.env.NODE_ENV === "production",
+  //   path: "/",
+  //   maxAge: 60 * 60 * 24, // 1 day
+  // });
+
+  const cookieStore = await cookies();
+
+cookieStore.set("authToken", token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: 60 * 60 * 24, // 1 day
+});
+
 
   return new Response(JSON.stringify({ message: "Login successful" , role : user.role , status : user.status }), { status: 200 });
 }

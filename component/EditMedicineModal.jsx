@@ -196,7 +196,7 @@ const handleSubmit = async () => {
           </div>
 
           <div className="grid gap-2">
-            <Label>RAG</Label>
+            <Label>Rack</Label>
             <Input
               ref={RAGRef}
               value={RAG}

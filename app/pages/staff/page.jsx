@@ -128,7 +128,7 @@ useEffect(() => {
             const length = input.value.length;
             input.setSelectionRange(length, length);
           }
-        }a
+        }
       }
 
       if (e.ctrlKey && e.key.toLowerCase() === "c") {
@@ -154,7 +154,7 @@ useEffect(() => {
             prev - 1 < 0 ? filteredInventory.length - 1 : prev - 1
           );
         }
-        if (e.key === "Eanter" || e.key === " ") {
+        if (e.key === "Enter" || e.key === " ") {
           const current = filteredInventory[focusedIndex];
           if (current && current.quantity > 0) toggleSelect(current._id);
         }
@@ -199,7 +199,7 @@ useEffect(() => {
         sellingPrice: "",
         expiry: "",
       });
-      fetchMedicines();f
+      fetchMedicines();
     } catch (err) {
       console.error("Failed to add medicine", err);
     }
@@ -261,7 +261,7 @@ useEffect(() => {
                 <TableHead>No</TableHead>
                 <TableHead>Medicine Name</TableHead>
                 <TableHead>(Generic)</TableHead>
-                 <TableHead>Rag</TableHead>
+                 <TableHead>Rack</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Tp</TableHead>

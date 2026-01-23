@@ -250,7 +250,7 @@ const capitalizeWords = (str) =>
 
           {/* RAG */}
           <div className="grid gap-2">
-            <Label htmlFor="RAG">RAG</Label>
+            <Label htmlFor="RAG">Rack</Label>
             <Input
               id="RAG"
               ref={RAGRef}
