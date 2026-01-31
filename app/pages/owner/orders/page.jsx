@@ -11,8 +11,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "../../../../components/ui/table";
-import { Edit, Trash2, DollarSign, Percent, TrendingUp, Layers, ChevronUp, ChevronDown } from "lucide-react";
+import { Edit, Trash2, DollarSign, Percent, TrendingUp, Layers, ChevronUp, ChevronDown, Search, RefreshCw, FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,40 @@ export default function HistoryPage() {
   // Date filter
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  // Reset filters
+  const resetFilters = () => {
+    setSearch("");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  // Export filtered results to CSV
+  const exportCSV = () => {
+    if (!filteredHistory || filteredHistory.length === 0) return;
+    const rows = [
+      ["Date","Items","Service","Discount","Final Total","Profit"],
+    ];
+
+    filteredHistory.forEach((rec) => {
+      const date = new Date(rec.createdAt).toLocaleDateString();
+      const items = rec.items.map(i => `${i.name} (x${i.quantity})`).join(" | ");
+      const service = Number(rec.service ?? rec.items[0]?.service ?? 0).toFixed(2);
+      const discount = Number(rec.discount ?? 0).toFixed(2);
+      const finalTotal = Number(rec.finalTotal ?? 0).toFixed(2);
+      const profit = rec.items.reduce((s, it) => s + ((Number(it.sellingPrice||0) - Number(it.medicineId?.purchasePrice ?? 0)) * Number(it.quantity||0)), 0).toFixed(2);
+      rows.push([date, items, service, discount, finalTotal, profit]);
+    });
+
+    const csvContent = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ✅ Fetch history
   const fetchHistory = async () => {
@@ -238,35 +273,52 @@ export default function HistoryPage() {
     <div className="p-4 pb-32">
       <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
 
-      {/* 🔹 Search + Date Filters */}
-      <div className="flex items-center gap-4 mb-4">
-        <Input
-          placeholder="Search by medicine..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
-        />
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <Input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-        {selectedRecords.length > 0 && (
-          <Button variant="destructive" onClick={handleDeleteSelected}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Selected ({selectedRecords.length})
+      {/* 🔹 Search + Date Filters (card) */}
+      <div className="flex items-center gap-4 mb-4 bg-white rounded-md shadow-sm border px-4 py-3">
+        <div className="flex items-center gap-2 w-full max-w-md">
+          <Search className="w-4 h-4 text-gray-500" />
+          <Input
+            placeholder="Search by medicine..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" onClick={resetFilters} size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" /> Reset
           </Button>
-        )}
+
+          <Button onClick={exportCSV} size="sm">
+            <FileText className="w-4 h-4 mr-2" /> Export CSV
+          </Button>
+
+          {selectedRecords.length > 0 && (
+            <Button variant="destructive" onClick={handleDeleteSelected}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected ({selectedRecords.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-white rounded-md border border-gray-400 shadow-sm">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-20 bg-white">
             <TableRow>
               <TableHead>Select</TableHead>
               <TableHead>No</TableHead>
@@ -407,24 +459,45 @@ export default function HistoryPage() {
               )
             )}
 
-            {/* 🔹 Total Profit Row */}
-            {/* 🔹 Summary Row */}
-            {filteredHistory.length > 0 && (
-              <TableRow className="bg-gray-100 font-bold">
+
+          </TableBody>
+
+          {filteredHistory.length > 0 && (
+            <TableFooter>
+              <TableRow>
                 <TableCell colSpan={2} className="text-right">
-                  Total Quantity Sold: {totalQuantity}
+                  <div className="text-sm text-gray-600">Total Quantity Sold</div>
+                  <div className="font-semibold">{totalQuantity}</div>
                 </TableCell>
 
-                <TableCell colSpan={4} className="text-right">
-                  Total Sales (₨): ₨ {totalSales.toFixed(2)}
+                <TableCell colSpan={3} className="text-right">
+                  <div className="text-sm text-gray-600">Total Sales</div>
+                  <div className="font-semibold">₨ {totalSales.toFixed(2)}</div>
                 </TableCell>
 
-                <TableCell colSpan={6} className="text-right text-green-600">
-                  Profit: ₨ {totalProfit.toFixed(2)}
+                <TableCell className="text-right">
+                  <div className="text-sm text-gray-600">Total SC</div>
+                  <div className="font-semibold">₨ {totalService.toFixed(2)}</div>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="text-sm text-gray-600">Discount</div>
+                  <div className="font-semibold">₨ {totalDiscount.toFixed(2)}</div>
+                </TableCell>
+
+                <TableCell className="text-right text-green-600">
+                  <div className="text-sm text-gray-600">Profit</div>
+                  <div className="font-semibold">₨ {totalProfit.toFixed(2)}</div>
+                </TableCell>
+
+                <TableCell colSpan={2} className="text-right">
+                  <div className="text-sm text-gray-600">Final Total</div>
+                  <div className="font-semibold">₨ {totalFinal.toFixed(2)}</div>
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
+            </TableFooter>
+          )}
+
         </Table>
       </div>
 
