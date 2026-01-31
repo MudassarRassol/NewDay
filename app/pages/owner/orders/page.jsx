@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../../../components/ui/table";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, DollarSign, Percent, TrendingUp, Layers, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ export default function HistoryPage() {
   const [newQuantity, setNewQuantity] = useState(0);
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [barCollapsed, setBarCollapsed] = useState(false);
 
   // Date filter
   const [startDate, setStartDate] = useState("");
@@ -216,8 +217,25 @@ export default function HistoryPage() {
     );
   }, 0);
 
+  // ✅ Total Service Charges (SC)
+  const totalService = filteredHistory.reduce((sum, record) => {
+    // service may be stored on the record or on the first item
+    const sc = Number(record.service ?? record.items[0]?.service ?? 0);
+    return sum + sc;
+  }, 0);
+
+  // ✅ Total Discount
+  const totalDiscount = filteredHistory.reduce((sum, record) => {
+    return sum + Number(record.discount ?? 0);
+  }, 0);
+
+  // ✅ Total Final Amount (after discounts + service)
+  const totalFinal = filteredHistory.reduce((sum, record) => {
+    return sum + Number(record.finalTotal ?? 0);
+  }, 0);
+
   return (
-    <div className="p-4">
+    <div className="p-4 pb-32">
       <h1 className="text-3xl font-bold mb-4 text-primary">Sales History</h1>
 
       {/* 🔹 Search + Date Filters */}
@@ -408,6 +426,75 @@ export default function HistoryPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* 🔔 Sticky summary bar - stays visible at bottom with improved UI */}
+      <div className="sticky bottom-4 z-50 px-4">
+        <div className="max-w-full mx-auto">
+          <div
+            className={`bg-white border rounded-lg shadow-lg overflow-hidden transition-all duration-200 ${
+              barCollapsed ? "max-h-14" : "max-h-60"
+            }`}
+          >
+            <div className="flex items-center justify-between p-3">
+              <div className="flex items-center gap-3">
+                <div className="text-sm font-medium">Sales Summary</div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-md text-sm">
+                    <DollarSign className="w-4 h-4 text-gray-600" />
+                    <div className="text-gray-500">Qty</div>
+                    <div className="font-semibold"> {totalQuantity}</div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-md text-sm">
+                    <TrendingUp className="w-4 h-4 text-gray-600" />
+                    <div className="text-gray-500">Sales</div>
+                    <div className="font-semibold">₨ {totalSales.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={barCollapsed ? "Expand summary" : "Collapse summary"}
+                  onClick={() => setBarCollapsed((s) => !s)}
+                >
+                  {barCollapsed ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className={`p-3 border-t ${barCollapsed ? "hidden" : "flex flex-wrap gap-3 items-center"}`}>
+              <div className="rounded-md bg-gray-50 px-3 py-2 text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-gray-600" />
+                <div className="text-gray-500">Total SC</div>
+                <div className="font-medium">₨ {totalService.toFixed(2)}</div>
+              </div>
+
+              <div className="rounded-md bg-gray-50 px-3 py-2 text-sm flex items-center gap-2">
+                <Percent className="w-4 h-4 text-gray-600" />
+                <div className="text-gray-500">Discount</div>
+                <div className="font-medium">₨ {totalDiscount.toFixed(2)}</div>
+              </div>
+
+              <div className="rounded-md bg-green-50 px-3 py-2 text-sm flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <div className="text-green-600 font-semibold">Profit</div>
+                <div className="font-bold text-green-700">₨ {totalProfit.toFixed(2)}</div>
+              </div>
+
+              <div className="ml-auto rounded-lg bg-yellow-50 px-4 py-2 text-sm font-semibold flex items-center gap-2">
+                <Layers className="w-4 h-4 text-yellow-600" />
+                Final Total: ₨ {totalFinal.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Edit Quantity Modal */}
