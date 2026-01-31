@@ -326,9 +326,14 @@ export default function HistoryPage() {
                       <TableCell className="text-right border">
                         ₨ {item.totalAmount.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right border">
-                        ₨ {item.service}
-                      </TableCell>
+                      {itemIdx === 0 && (
+                        <TableCell
+                          rowSpan={record.items.length}
+                          className="text-right border"
+                        >
+                          ₨ {typeof record.service !== 'undefined' ? record.service : (record.items[0]?.service ?? 0)}
+                        </TableCell>
+                      )}
 
                       {itemIdx === 0 && (
                         <>

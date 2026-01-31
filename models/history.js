@@ -40,6 +40,10 @@ const HistorySchema = new mongoose.Schema(
       type: Number,
       default: 0, // in Rs
     },
+    service: {
+      type: Number,
+      default: 0, // total service for the record in Rs
+    },
     finalTotal: {
       type: Number,
       required: true,

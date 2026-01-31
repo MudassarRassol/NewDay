@@ -42,14 +42,15 @@ export async function POST(req) {
         sellingPrice: sp,
         totalAmount,
         profit: profit < 0 ? 0 : profit,
-        service : serviceprice
+        // do not assign total service to each item here
       };
     });
 
-    // Save history
+    // Save history (store total service at the record level)
     const history = await HistoryModel.create({
       items: itemsWithProfit,
       discount,
+      service: serviceprice || 0,
       finalTotal,
     });
 
