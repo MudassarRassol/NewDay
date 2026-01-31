@@ -465,35 +465,37 @@ export default function HistoryPage() {
           {filteredHistory.length > 0 && (
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={2} className="text-right">
-                  <div className="text-sm text-gray-600">Total Quantity Sold</div>
-                  <div className="font-semibold">{totalQuantity}</div>
+                <TableCell colSpan={3} className="border text-center">
+                  <div className="text-xs text-gray-600">Total Quantity Sold</div>
+                  <div className="font-bold text-lg">{totalQuantity}</div>
                 </TableCell>
 
-                <TableCell colSpan={3} className="text-right">
-                  <div className="text-sm text-gray-600">Total Sales</div>
-                  <div className="font-semibold">₨ {totalSales.toFixed(2)}</div>
+                <TableCell colSpan={3} className="border text-center">
+                  <div className="text-xs text-gray-600">Total Sales</div>
+                  <div className="font-bold text-lg">₨ {totalSales.toFixed(2)}</div>
                 </TableCell>
 
-                <TableCell className="text-right">
-                  <div className="text-sm text-gray-600">Total SC</div>
-                  <div className="font-semibold">₨ {totalService.toFixed(2)}</div>
+                <TableCell className="border text-center">
+                  <div className="text-xs text-gray-600">Total SC</div>
+                  <div className="font-bold text-lg">₨ {totalService.toFixed(2)}</div>
                 </TableCell>
 
-                <TableCell className="text-right">
-                  <div className="text-sm text-gray-600">Discount</div>
-                  <div className="font-semibold">₨ {totalDiscount.toFixed(2)}</div>
+                <TableCell className="border text-center">
+                  <div className="text-xs text-gray-600">Discount</div>
+                  <div className="font-bold text-lg">₨ {totalDiscount.toFixed(2)}</div>
                 </TableCell>
 
-                <TableCell className="text-right text-green-600">
-                  <div className="text-sm text-gray-600">Profit</div>
-                  <div className="font-semibold">₨ {totalProfit.toFixed(2)}</div>
+                <TableCell colSpan={2} className="border text-center bg-yellow-50">
+                  <div className="text-xs text-gray-600">Final Total</div>
+                  <div className="font-bold text-lg text-yellow-700">₨ {totalFinal.toFixed(2)}</div>
                 </TableCell>
 
-                <TableCell colSpan={2} className="text-right">
-                  <div className="text-sm text-gray-600">Final Total</div>
-                  <div className="font-semibold">₨ {totalFinal.toFixed(2)}</div>
+                <TableCell colSpan={2} className="border text-center">
+                  <div className="text-xs text-gray-600">Profit</div>
+                  <div className="font-bold text-lg text-green-600">₨ {totalProfit.toFixed(2)}</div>
                 </TableCell>
+
+
               </TableRow>
             </TableFooter>
           )}
@@ -555,16 +557,13 @@ export default function HistoryPage() {
                 <div className="font-medium">₨ {totalDiscount.toFixed(2)}</div>
               </div>
 
+
               <div className="rounded-md bg-green-50 px-3 py-2 text-sm flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
                 <div className="text-green-600 font-semibold">Profit</div>
                 <div className="font-bold text-green-700">₨ {totalProfit.toFixed(2)}</div>
               </div>
 
-              <div className="ml-auto rounded-lg bg-yellow-50 px-4 py-2 text-sm font-semibold flex items-center gap-2">
-                <Layers className="w-4 h-4 text-yellow-600" />
-                Final Total: ₨ {totalFinal.toFixed(2)}
-              </div>
             </div>
           </div>
         </div>
