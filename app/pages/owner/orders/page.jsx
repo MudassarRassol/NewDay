@@ -44,21 +44,35 @@ export default function HistoryPage() {
     setEndDate("");
   };
 
-  // Export filtered results to CSV
+  // Export filtered results to CSV (only matched items when search is used)
   const exportCSV = () => {
     if (!filteredHistory || filteredHistory.length === 0) return;
     const rows = [
-      ["Date","Items","Service","Discount","Final Total","Profit"],
+      ["Date","Order ID","Item","Quantity","Price/Unit","Total","Service","Discount","Final Total","Profit"],
     ];
 
     filteredHistory.forEach((rec) => {
       const date = new Date(rec.createdAt).toLocaleDateString();
-      const items = rec.items.map(i => `${i.name} (x${i.quantity})`).join(" | ");
+      // Only include items that match the current search (if search empty, include all)
+      const matchedItems = rec.items.filter((i) =>
+        !search || i.name.toLowerCase().includes(search.toLowerCase())
+      );
+      if (matchedItems.length === 0) return;
+
       const service = Number(rec.service ?? rec.items[0]?.service ?? 0).toFixed(2);
       const discount = Number(rec.discount ?? 0).toFixed(2);
       const finalTotal = Number(rec.finalTotal ?? 0).toFixed(2);
-      const profit = rec.items.reduce((s, it) => s + ((Number(it.sellingPrice||0) - Number(it.medicineId?.purchasePrice ?? 0)) * Number(it.quantity||0)), 0).toFixed(2);
-      rows.push([date, items, service, discount, finalTotal, profit]);
+
+      matchedItems.forEach((i) => {
+        const qty = Number(i.quantity || 0);
+        const unit = Number(i.sellingPrice || 0).toFixed(2);
+        const total = Number(i.totalAmount || qty * Number(unit)).toFixed(2);
+        const profit = (
+          (Number(i.sellingPrice || 0) - Number(i.medicineId?.purchasePrice ?? 0)) * qty
+        ).toFixed(2);
+
+        rows.push([date, rec._id, i.name, qty, unit, total, service, discount, finalTotal, profit]);
+      });
     });
 
     const csvContent = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
