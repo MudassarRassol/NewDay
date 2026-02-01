@@ -140,7 +140,7 @@ useEffect(() => {
         searchRef.current?.focus();
       }
 
-      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+      if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
         e.preventDefault();
         if (filteredInventory.length === 0) return;
 
@@ -154,7 +154,21 @@ useEffect(() => {
             prev - 1 < 0 ? filteredInventory.length - 1 : prev - 1
           );
         }
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === "Enter") {
+          const current = filteredInventory[focusedIndex];
+          if (current && current.quantity > 0) toggleSelect(current._id);
+        }
+      }
+
+      // SPACE key: toggle current selection only when no input is focused
+      if (e.key === " ") {
+        const active = document.activeElement;
+        const isInputFocused =
+          active &&
+          (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.getAttribute?.("role") === "textbox");
+        if (!isInputFocused) {
+          e.preventDefault();
+          if (filteredInventory.length === 0) return;
           const current = filteredInventory[focusedIndex];
           if (current && current.quantity > 0) toggleSelect(current._id);
         }
