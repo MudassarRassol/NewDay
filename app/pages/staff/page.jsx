@@ -244,6 +244,11 @@ useEffect(() => {
               placeholder="Search medicines..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSearch("");
+                }
+              }}
               className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl"
               autoFocus
               tabIndex={1}
