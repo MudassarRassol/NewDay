@@ -22,6 +22,7 @@ export default function MedicinePage() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [mrpSearch, setMrpSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -81,10 +82,16 @@ useEffect(() => {
   }, [status]);
 
   const filteredInventory = inventory.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.generic.toLowerCase().includes(search.toLowerCase()) ||
-      (item.rag && item.rag.toLowerCase().includes(search.toLowerCase()))
+    (item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.generic.toLowerCase().includes(search.toLowerCase()) ||
+        (item.rag && item.rag.toLowerCase().includes(search.toLowerCase()));
+      
+      const matchesMRP = !mrpSearch || item.sellingPrice.toString().includes(mrpSearch);
+      
+      return matchesSearch && matchesMRP;
+    }
   );
 
   const toggleSelect = (id) => {
@@ -239,20 +246,34 @@ useEffect(() => {
         <div className="flex flex-wrap justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-primary">Manage Medicine</h1>
           <div className="flex items-center gap-4">
-            <Input
-              ref={searchRef}
-              placeholder="Search medicines..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setSearch("");
-                }
-              }}
-              className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl"
-              autoFocus
-              tabIndex={1}
-            />
+            <div className="flex gap-2">
+              <Input
+                ref={searchRef}
+                placeholder="Search medicines..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setSearch("");
+                  }
+                }}
+                className="w-64 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl"
+                autoFocus
+                tabIndex={1}
+              />
+              <Input
+                placeholder="Search MRP..."
+                value={mrpSearch}
+                onChange={(e) => setMrpSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setMrpSearch("");
+                  }
+                }}
+                className="w-40 py-7 border-2 border-blue-950 placeholder:text-blue-950 text-2xl"
+                tabIndex={1}
+              />
+            </div>
             <div className="flex gap-3">
               <Button
                 className="px-10 py-7"
