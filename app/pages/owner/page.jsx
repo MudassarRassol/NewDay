@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
 import { Eye, EyeOff, Loader2 } from "lucide-react"; // spinner & visibility icons
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -154,18 +156,33 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-            {stats.map((stat, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium text-gray-600">
-                    {stat.label}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {stats.map((stat, i) => {
+              // Make Low Stock and Expiring Medicines clickable
+              const isLowStock = stat.label === "Low Stock Alerts";
+              const isExpiring = stat.label === "Expiring Medicines";
+              
+              return (
+                <Card 
+                  key={i}
+                  onClick={() => {
+                    if (isLowStock) router.push("/pages/owner/low-stock");
+                    if (isExpiring) router.push("/pages/owner/expiring-medicines");
+                  }}
+                  className={`${
+                    (isLowStock || isExpiring) ? "cursor-pointer hover:shadow-lg transition-shadow" : ""
+                  }`}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium text-gray-600">
+                      {stat.label}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )
       )} 
@@ -202,6 +219,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }
