@@ -359,7 +359,7 @@ useEffect(() => {
                       ₨ {item.purchasePrice}
                     </TableCell>
                     <TableCell className="border">
-                      ₨ {item.sellingPrice}
+                      ₨ {highlightText(item.sellingPrice.toString(), mrpSearch)}
                     </TableCell>
                     <TableCell
                       className={

@@ -48,7 +48,7 @@ export default function HistoryPage() {
   const exportCSV = () => {
     if (!filteredHistory || filteredHistory.length === 0) return;
     const rows = [
-      ["Date","Order ID","Item","Quantity","Price/Unit","Total","Service","Discount","Final Total","Profit"],
+      ["Date","Order ID","Item","Quantity","Price/Unit","Total","Service","Discount","Final Total","Item Profit"],
     ];
 
     filteredHistory.forEach((rec) => {
@@ -253,15 +253,14 @@ export default function HistoryPage() {
     );
   }, 0);
 
-  // ✅ Total Profit (already done, keep your version)
-  const totalProfit = filteredHistory.reduce((sum, record) => {
+  // ✅ Total Cost of All Items
+  const totalCost = filteredHistory.reduce((sum, record) => {
     return (
       sum +
       record.items.reduce((itemSum, item) => {
-        const selling = Number(item.sellingPrice || 0);
         const purchase = Number(item.medicineId?.purchasePrice ?? 0);
         const qty = Number(item.quantity || 0);
-        return itemSum + (selling - purchase) * qty;
+        return itemSum + purchase * qty;
       }, 0)
     );
   }, 0);
@@ -282,6 +281,9 @@ export default function HistoryPage() {
   const totalFinal = filteredHistory.reduce((sum, record) => {
     return sum + Number(record.finalTotal ?? 0);
   }, 0);
+
+  // ✅ Total Profit = Final Total - Total Cost
+  const totalProfit = totalFinal - totalCost;
 
   return (
     <div className="p-4 pb-32">
@@ -505,7 +507,8 @@ export default function HistoryPage() {
                 </TableCell>
 
                 <TableCell colSpan={2} className="border text-center">
-                  <div className="text-xs text-gray-600">Profit</div>
+                  <div className="text-xs text-gray-600">Net Profit</div>
+                  <div className="text-xs text-gray-500">Item Profit + SC − Discount</div>
                   <div className="font-bold text-lg text-green-600">₨ {totalProfit.toFixed(2)}</div>
                 </TableCell>
 
@@ -574,7 +577,10 @@ export default function HistoryPage() {
 
               <div className="rounded-md bg-green-50 px-3 py-2 text-sm flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <div className="text-green-600 font-semibold">Profit</div>
+                <div className="flex flex-col">
+                  <div className="text-green-600 font-semibold">Final Profit</div>
+                  <div className="text-xs text-gray-500">Shows earnings after SC and discount</div>
+                </div>
                 <div className="font-bold text-green-700">₨ {totalProfit.toFixed(2)}</div>
               </div>
 
