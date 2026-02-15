@@ -32,6 +32,9 @@ export default function SalesTransactionPage() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const discountRef = useRef(null);
   const serviceRef = useRef(null);
+  const isPrintingRef = useRef(false);
+  const [buttonDisabled, setButtonDisabled] = useState(false);
+
 
   useEffect(() => {
     const handleShortcut = (e) => {
@@ -71,6 +74,8 @@ export default function SalesTransactionPage() {
   // 🔑 Backspace = Go back to Medicines
   useEffect(() => {
     const handleBack = (e) => {
+      if (showTranscript) return; // don't navigate back while receipt open
+
       if (e.key === "ArrowLeft") {
         // Agar input field pe focus nahi hai tohi chale
         const activeTag = document.activeElement?.tagName;
@@ -83,11 +88,13 @@ export default function SalesTransactionPage() {
 
     window.addEventListener("keydown", handleBack);
     return () => window.removeEventListener("keydown", handleBack);
-  }, [router]);
+  }, [router, showTranscript]);
 
   // 🔑 Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (showTranscript) return; // disable navigation shortcuts while receipt open
+
       const activeTag = document.activeElement?.tagName;
 
       // If focused on input, only allow escape (to exit)
@@ -151,9 +158,19 @@ export default function SalesTransactionPage() {
       }
 
       // ArrowRight → Print bill
-      if (e.key === "ArrowRight" && !isInputFocused) {
+      if (
+        e.key === "ArrowRight" &&
+        !isInputFocused &&
+        !buttonDisabled &&
+        !showTranscript
+      ) {
         e.preventDefault();
-        handlePrint();
+        if(buttonDisabled){
+          alert("Please wait, processing current transaction...");
+        }
+        else{
+          handlePrint();
+        }
       }
 
       // ArrowLeft → Go back to add medicines
@@ -183,6 +200,8 @@ export default function SalesTransactionPage() {
 
     const handleEnterClose = (e) => {
       if (e.key === "Enter") {
+        isPrintingRef.current = false;
+        setButtonDisabled(false); // re-enable button for next transaction
         e.preventDefault();
         setShowTranscript(false);
         localStorage.removeItem("cartItems"); // clear cart
@@ -269,10 +288,13 @@ export default function SalesTransactionPage() {
   const profit = total * 0.4;
 
   const handlePrint = async () => {
+    if (loading || buttonDisabled || showTranscript || isPrintingRef.current) return; // prevent duplicate prints
     if (inventory.length === 0) {
       alert("No medicines in cart!");
       return;
     }
+    isPrintingRef.current = true; // synchronous guard to avoid race on rapid clicks
+    setButtonDisabled(true); // immediately disable to prevent multiple submissions
     setLoading(true);
     try {
       const payload = {
@@ -289,12 +311,14 @@ export default function SalesTransactionPage() {
         finalTotal: total,
         serviceprice: serviceprice,
       };
-      console.log(payload);
+     
       await axios.post("/api/history", payload);
       setShowTranscript(true);
     } catch (err) {
       console.error("Print failed:", err);
       alert("Something went wrong!");
+      isPrintingRef.current = false;
+      setButtonDisabled(false); // re-enable so user can retry
     } finally {
       setLoading(false);
     }
@@ -318,7 +342,7 @@ export default function SalesTransactionPage() {
   };
 
   return (
-    <div className="p-6 sm:p-10 bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen">
+    <div className="p-6 sm:p-10 bg-linear-to-br from-blue-50 to-gray-100 min-h-screen">
       {/* Header */}
       <header className="flex justify-between items-center mb-8 border-b pb-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-blue-700">
@@ -452,44 +476,48 @@ export default function SalesTransactionPage() {
                 Checkout Summary
               </h2>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Discount (₨)
-                </label>
-                <Input
-                  ref={discountRef}
-                  type="number"
-                  value={discount === 0 ? "" : discount}
-                  min={0}
-                  max={subtotal}
-                  onChange={(e) => setDiscount(parseInt(e.target.value) || 0)}
-                  className="mb-2"
-                  onFocus={() => setIsInputFocused(true)}
-                  onBlur={handleInputBlur}
-                />
 
-                <p className="text-xs text-gray-500">
-                  {discountAmount} Rs ({discountPercent}%)
-                </p>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Service (₨)
-                </label>
-                <Input
-                  ref={serviceRef}
-                  type="number"
-                  value={serviceprice === 0 ? "" : serviceprice}
-                  min={0}
-                  max={subtotal}
-                  onChange={(e) =>
-                    setserviceprice(parseInt(e.target.value) || 0)
-                  }
-                  className="mb-2"
-                  onFocus={() => setIsInputFocused(true)}
-                  onBlur={handleInputBlur}
-                />
-              </div>
+             <div className="w-full mb-4 p-4 bg-gray-50 rounded-lg border flex flex-col md:flex-row gap-4 items-start">
+                <div className="w-full md:w-1/2">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Discount (₨)
+                  </label>
+                  <Input
+                    ref={discountRef}
+                    type="number"
+                    value={discount === 0 ? "" : discount}
+                    min={0}
+                    max={subtotal}
+                    onChange={(e) => setDiscount(parseInt(e.target.value) || 0)}
+                    className="mb-2 w-full"
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={handleInputBlur}
+                  />
+
+                  <p className="text-xs text-gray-500">
+                    {discountAmount} Rs ({discountPercent}%)
+                  </p>
+                </div>
+                <div className="w-full md:w-1/2">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Service (₨)
+                  </label>
+                  <Input
+                    ref={serviceRef}
+                    type="number"
+                    value={serviceprice === 0 ? "" : serviceprice}
+                    min={0}
+                    max={subtotal}
+                    onChange={(e) =>
+                      setserviceprice(parseInt(e.target.value) || 0)
+                    }
+                    className="mb-2 w-full"
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={handleInputBlur}
+                  />
+                </div>
+             </div>
+               
 
               <div className="space-y-2 text-sm mb-6">
                 <div className="flex justify-between">
@@ -512,23 +540,23 @@ export default function SalesTransactionPage() {
 
               <div className="mt-6 flex gap-3">
                 <Button
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
+                  className="flex-1 bg-linear-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
                   onClick={handlePrint}
-                  disabled={loading || inventory.length === 0}
+                  disabled={loading || inventory.length === 0 || showTranscript || buttonDisabled}
                 >
                   {loading ? "Processing..." : "🖨️ Print Bill (→)"}
                 </Button>
                 <Button
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
+                  className="flex-1 bg-linear-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
                   onClick={handleGoBack}
-                  disabled={loading}
+                  disabled={loading || showTranscript}
                 >
                   ← Add More (←)
                 </Button>
                 <Button
-                  className="w-24 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                  className="w-24 bg-linear-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={loading || showTranscript}
                 >
                   ✖ Cancel
                 </Button>
@@ -544,6 +572,8 @@ export default function SalesTransactionPage() {
         onOpenChange={(open) => {
           setShowTranscript(open);
           if (!open) {
+            isPrintingRef.current = false;
+            setButtonDisabled(false);
             localStorage.removeItem("cartItems");
             router.push("/pages/staff");
           }
@@ -577,14 +607,14 @@ export default function SalesTransactionPage() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.saleQuantity || 1}</TableCell>
                     <TableCell>
-                      ₨ {item.sellingPrice * (item.saleQuantity || 1)}
+                      ₨ {item.sellingPrice * (item.saleQuantity || 1) + serviceprice }
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <div className="mt-4 border-t pt-2 space-y-1 text-right">
-              <p>Gross Total: ₨ {subtotal}</p>
+              {/* <p>Gross Total: ₨ {subtotal}</p> */}
               <p>Discount: ₨ {discountAmount}</p>
               <p className="font-bold text-lg">Net Total: ₨ {total}</p>
             </div>
@@ -594,6 +624,8 @@ export default function SalesTransactionPage() {
             <div className="mt-4 text-center">
               <Button
                 onClick={() => {
+                  isPrintingRef.current = false;
+                  setButtonDisabled(false);
                   setShowTranscript(false);
                   localStorage.removeItem("cartItems");
                   router.push("/pages/staff");

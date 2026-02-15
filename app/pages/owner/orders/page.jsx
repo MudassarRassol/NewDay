@@ -147,12 +147,23 @@ export default function HistoryPage() {
     )
     .filter((record) => {
       if (!startDate && !endDate) return true;
-      const recordDate = new Date(record.createdAt).setHours(0, 0, 0, 0);
-      const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
-      const end = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
 
-      if (start && recordDate < start) return false;
-      if (end && recordDate > end) return false;
+      // Use local date (YYYY-MM-DD) string comparison to avoid timezone
+      // off-by-one issues when constructing Date from date-only strings.
+      const toLocalYMD = (d) => {
+        const dt = new Date(d);
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
+        const day = String(dt.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      const recordYMD = toLocalYMD(record.createdAt);
+      const start = startDate || null; // already in YYYY-MM-DD from input
+      const end = endDate || null;
+
+      if (start && recordYMD < start) return false;
+      if (end && recordYMD > end) return false;
       return true;
     });
 
