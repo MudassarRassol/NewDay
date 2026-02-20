@@ -607,7 +607,7 @@ export default function SalesTransactionPage() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.saleQuantity || 1}</TableCell>
                     <TableCell>
-                      ₨ {item.sellingPrice * (item.saleQuantity || 1) + serviceprice }
+                      ₨ {item.sellingPrice * (item.saleQuantity || 1) }
                     </TableCell>
                   </TableRow>
                 ))}
