@@ -35,7 +35,6 @@ export default function SalesTransactionPage() {
   const isPrintingRef = useRef(false);
   const [buttonDisabled, setButtonDisabled] = useState(false);
 
-
   useEffect(() => {
     const handleShortcut = (e) => {
       // Ctrl + D → focus Discount
@@ -118,7 +117,7 @@ export default function SalesTransactionPage() {
           document.activeElement?.blur();
           setIsInputFocused(false);
           setHighlightedIndex((prev) =>
-            prev < inventory.length - 1 ? prev + 1 : 0
+            prev < inventory.length - 1 ? prev + 1 : 0,
           );
         }
         return; // don't handle navigation while inside input
@@ -128,14 +127,14 @@ export default function SalesTransactionPage() {
       if (e.key === "ArrowUp" && !isInputFocused) {
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          prev > 0 ? prev - 1 : inventory.length - 1
+          prev > 0 ? prev - 1 : inventory.length - 1,
         );
       }
 
       if (e.key === "ArrowDown" && !isInputFocused) {
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          prev < inventory.length - 1 ? prev + 1 : 0
+          prev < inventory.length - 1 ? prev + 1 : 0,
         );
       }
 
@@ -153,7 +152,7 @@ export default function SalesTransactionPage() {
       if (e.key === "Tab" && !isInputFocused) {
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          prev < inventory.length - 1 ? prev + 1 : 0
+          prev < inventory.length - 1 ? prev + 1 : 0,
         );
       }
 
@@ -165,10 +164,9 @@ export default function SalesTransactionPage() {
         !showTranscript
       ) {
         e.preventDefault();
-        if(buttonDisabled){
+        if (buttonDisabled) {
           alert("Please wait, processing current transaction...");
-        }
-        else{
+        } else {
           handlePrint();
         }
       }
@@ -223,8 +221,8 @@ export default function SalesTransactionPage() {
               ...med,
               saleQuantity: Math.min(Math.max(1, qty), med.quantity),
             }
-          : med
-      )
+          : med,
+      ),
     );
   };
 
@@ -232,7 +230,9 @@ export default function SalesTransactionPage() {
     // Allow empty value for better UX when typing
     if (value === "") {
       setInventory((prev) =>
-        prev.map((med) => (med._id === id ? { ...med, saleQuantity: "" } : med))
+        prev.map((med) =>
+          med._id === id ? { ...med, saleQuantity: "" } : med,
+        ),
       );
       return;
     }
@@ -246,8 +246,8 @@ export default function SalesTransactionPage() {
                 ...med,
                 saleQuantity: Math.min(Math.max(1, qty), med.quantity),
               }
-            : med
-        )
+            : med,
+        ),
       );
     }
   };
@@ -279,7 +279,7 @@ export default function SalesTransactionPage() {
 
   const subtotal = inventory.reduce(
     (acc, med) => acc + med.sellingPrice * (med.saleQuantity || 1),
-    0
+    0,
   );
   const discountAmount = Math.min(discount, subtotal);
   const discountPercent =
@@ -288,7 +288,8 @@ export default function SalesTransactionPage() {
   const profit = total * 0.4;
 
   const handlePrint = async () => {
-    if (loading || buttonDisabled || showTranscript || isPrintingRef.current) return; // prevent duplicate prints
+    if (loading || buttonDisabled || showTranscript || isPrintingRef.current)
+      return; // prevent duplicate prints
     if (inventory.length === 0) {
       alert("No medicines in cart!");
       return;
@@ -311,7 +312,7 @@ export default function SalesTransactionPage() {
         finalTotal: total,
         serviceprice: serviceprice,
       };
-     
+
       await axios.post("/api/history", payload);
       setShowTranscript(true);
     } catch (err) {
@@ -336,8 +337,8 @@ export default function SalesTransactionPage() {
       prev.map((med) =>
         med.saleQuantity === "" || med.saleQuantity < 1
           ? { ...med, saleQuantity: 1 }
-          : med
-      )
+          : med,
+      ),
     );
   };
 
@@ -409,8 +410,8 @@ export default function SalesTransactionPage() {
                         index === highlightedIndex && !isInputFocused
                           ? "bg-blue-100 font-semibold ring-2 ring-blue-300"
                           : index === highlightedIndex && isInputFocused
-                          ? "bg-blue-50 font-semibold"
-                          : "hover:bg-gray-50"
+                            ? "bg-blue-50 font-semibold"
+                            : "hover:bg-gray-50"
                       }`}
                     >
                       <TableCell>{index + 1}</TableCell>
@@ -476,19 +477,21 @@ export default function SalesTransactionPage() {
                 Checkout Summary
               </h2>
 
-
-             <div className="w-full mb-4 p-4 bg-gray-50 rounded-lg border flex flex-col md:flex-row gap-4 items-start">
+              <div className="w-full mb-4 p-4 bg-gray-50 rounded-lg border flex flex-col md:flex-row gap-4 items-start">
                 <div className="w-full md:w-1/2">
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     Discount (₨)
                   </label>
                   <Input
+                    step="0.01"
                     ref={discountRef}
                     type="number"
                     value={discount === 0 ? "" : discount}
                     min={0}
                     max={subtotal}
-                    onChange={(e) => setDiscount(parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setDiscount(parseFloat(e.target.value) || 0)
+                    }
                     className="mb-2 w-full"
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={handleInputBlur}
@@ -503,21 +506,21 @@ export default function SalesTransactionPage() {
                     Service (₨)
                   </label>
                   <Input
+                    step="0.01"
                     ref={serviceRef}
                     type="number"
                     value={serviceprice === 0 ? "" : serviceprice}
                     min={0}
                     max={subtotal}
                     onChange={(e) =>
-                      setserviceprice(parseInt(e.target.value) || 0)
+                      setserviceprice(parseFloat(e.target.value) || 0)
                     }
                     className="mb-2 w-full"
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={handleInputBlur}
                   />
                 </div>
-             </div>
-               
+              </div>
 
               <div className="space-y-2 text-sm mb-6">
                 <div className="flex justify-between">
@@ -534,7 +537,7 @@ export default function SalesTransactionPage() {
                 </div>
                 <div className="flex justify-between font-semibold text-base border-t pt-2">
                   <p>Total Price</p>
-                  <p>₨ {total}</p>
+                  <p>₨ {total.toFixed(2)}</p>
                 </div>
               </div>
 
@@ -542,7 +545,12 @@ export default function SalesTransactionPage() {
                 <Button
                   className="flex-1 bg-linear-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
                   onClick={handlePrint}
-                  disabled={loading || inventory.length === 0 || showTranscript || buttonDisabled}
+                  disabled={
+                    loading ||
+                    inventory.length === 0 ||
+                    showTranscript ||
+                    buttonDisabled
+                  }
                 >
                   {loading ? "Processing..." : "🖨️ Print Bill (→)"}
                 </Button>
@@ -607,7 +615,7 @@ export default function SalesTransactionPage() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.saleQuantity || 1}</TableCell>
                     <TableCell>
-                      ₨ {item.sellingPrice * (item.saleQuantity || 1) }
+                      ₨ {item.sellingPrice * (item.saleQuantity || 1)}
                     </TableCell>
                   </TableRow>
                 ))}

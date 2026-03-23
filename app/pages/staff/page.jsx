@@ -25,6 +25,9 @@ export default function MedicinePage() {
   const [mrpSearch, setMrpSearch] = useState("");
   const [selectedMedicines, setSelectedMedicines] = useState([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [highlightedSuggestion, setHighlightedSuggestion] = useState(-1);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -93,6 +96,35 @@ useEffect(() => {
       return matchesSearch && matchesMRP;
     }
   );
+
+  // Generate top suggestions based on search
+  useEffect(() => {
+    if (search.trim() === "") {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setHighlightedSuggestion(-1);
+      return;
+    }
+
+    const topMatches = inventory
+      .filter((item) => 
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.generic.toLowerCase().includes(search.toLowerCase())
+      )
+      .sort((a, b) => {
+        // Prioritize items starting with search term
+        const aStartsWith = a.name.toLowerCase().startsWith(search.toLowerCase());
+        const bStartsWith = b.name.toLowerCase().startsWith(search.toLowerCase());
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        return 0;
+      })
+      .slice(0, 5); // Show top 5 matches
+
+    setSuggestions(topMatches);
+    setShowSuggestions(topMatches.length > 0);
+    setHighlightedSuggestion(-1);
+  }, [search, inventory]);
 
   const toggleSelect = (id) => {
     setSelectedMedicines((prev) =>
